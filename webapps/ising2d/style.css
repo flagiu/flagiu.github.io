@@ -1,0 +1,26 @@
+body {
+    background-color: lightgray;
+}
+
+.grid {
+  display: grid;
+  justify-content: space-between;
+}
+
+#controls {
+    grid-column-start: 1;
+    width: 19vw;
+}
+
+#sketch-holder {
+    grid-column-start: 2;
+    width: 25vw;
+}
+#time-plot {
+    grid-column-start: 3;
+    width: 28vw;
+}
+#parametric-plot {
+    grid-column-start: 4;
+    width: 25vw;
+}
