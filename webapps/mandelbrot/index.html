@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>2D Mandelbrot set</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.3.0/math.min.js"></script>
+</head>
+<body>
+
+  <div class="grid" width="100%">
+    <div id="controls">
+      <h3>Controls</h3>
+      <div class="control">
+	<div> M, max complex modulus: <span id="maxmod_label">2</span></div>
+	<div><input  type="range" id="maxmod_slider" oninput="change_maxmod(this.value)" min="1", max="10", step="1", value="2"></div>
+      </div>
+
+      
+      <div class="control">
+	<div> N, max rule iterations: <span id="maxiter_label">100</span></div>
+	<div><input  type="range" id="maxiter_slider" oninput="change_maxiter(this.value)" min="10", max="1000", step="10", value="100"></div>
+      </div>
+      
+      <div class="control">
+	<div> n, rule exponent: <span id="n_label">2</span></div>
+	<div><input  type="range" id="n_slider" oninput="change_n(this.value)" min="1", max="16", step="1", value="2"></div>
+      </div>
+      
+      <div class="control">
+	<div> L, points per side: <span id="L_label">128</span></div>
+	<div><input  type="range" id="L_slider" oninput="changeL(this.value)" min="64", max="512", step="64", value="128"></div>
+      </div>
+      
+      <h3> Algorithm:</h3>
+      <p>For each point c in the complex plane, iterate the rule:</p>
+      <p> z(0) = 0; for k>0: z(k) = z(k-1)^n + c</p>
+      <p> and color only the points which remain bounded, i.e. |z| is less than M within N iterations.</p>
+      <div><p> Warning: it may be slow at high L or N.</p></div>
+    </div>
+    
+    <div id="sketch-holder"></div>
+  </div>
+  
+</body>
+
+<script type="text/javascript" src="../lib.js"></script>
+<script type="text/javascript" src="main.js"></script>
+
+</html> 
