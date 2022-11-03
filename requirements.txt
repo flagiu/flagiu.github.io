@@ -3,4 +3,3 @@ ipywidgets
 nbinteract
 matplotlib
 tqdm
-functools
