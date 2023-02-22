@@ -57,7 +57,7 @@ var trace4 = {
     y: [],
     mode: 'lines',
     type: 'scatter',
-    name: 'nMF prediction',
+    name: 'MF prediction',
     line: {color: '#0000ff'}
 };
 var layout1 = {

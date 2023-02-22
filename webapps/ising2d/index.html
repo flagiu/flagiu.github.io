@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="style.css">
     <title>Ising 2D ferromagnet</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
+<!--    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script> -->
 </head>
 <body>
 
@@ -25,14 +25,14 @@
       
       <div class="control">
 	<div> L, points per side: <span id="L_label">128</span></div>
-	<div><input  type="range" id="L_slider" oninput="changeL(this.value)" min="16", max="256", step="1", value="128"></div>
+	<div><input  type="range" id="L_slider" oninput="changeL(this.value)" min="16", max="512", step="1", value="128"></div>
       </div>
-      <button type="button" onclick="spins.init_random(m0,H)">Random configuration</button>
+      <button type="button" onclick="system.init_random(m0,H)">Random configuration</button>
     </div>
     
-    <div id="sketch-holder"></div>
-    <div id="time-plot"></div>
-    <div id="parametric-plot"><p>da ricontrollare...</p></div>
+    <canvas id="sketch-holder" style="border:2px solid"></canvas>
+    <div id="time-plot" style="border:1px solid"></div>
+    <div id="parametric-plot" style="border:1px solid"><p>da ricontrollare...</p></div>
   </div>
   
   <p> Suggestion 1: periodically and quasi-statically vary H (e.g. with keyboard arrows) --> hysteresis cycle.</p>
@@ -44,7 +44,7 @@
 
 <script type="text/javascript" src="plotly-setup.js"></script>
 <script type="text/javascript" src="../lib.js"></script>
-<script type="text/javascript" src="main.js"></script>
 <script type="text/javascript" src="classes.js"></script>
+<script type="text/javascript" src="main.js"></script>
 
 </html> 
