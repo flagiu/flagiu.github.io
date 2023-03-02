@@ -8,10 +8,9 @@ class Ising2D {
 //	this.cup = colors[cup];
 //	this.cdown = colors[cdown];
 //	this.cerr = colors[cerr];
-	
 	this.init_random(m0,h);
     }
-
+    
     energy(h) {
 	var s, idx, E = 0;
 	for (let i=0;i<L;i++)
@@ -37,7 +36,7 @@ class Ising2D {
 	}
 	this.e = this.energy(h);
     }
-    //************************************ end of construction
+    //---------- end of construction -------------------//
     
     update(T,h) {
 	let L=this.L;
@@ -67,7 +66,7 @@ class Ising2D {
 		this.m += this.s[i];
 	this.m /= this.N;
     }
-
+    
     resize(L) {
 	if(L==this.L) return;
 	else if (L<this.L) this.reduce(L);
@@ -76,7 +75,7 @@ class Ising2D {
 	this.N = Math.floor(L*L);
 	//this.img = createImage(L,L);
     }
-
+    
     reduce(L) {
 	let snew = new Int32Array(L*L);
 	let factor = Math.floor(this.L/L); // >1

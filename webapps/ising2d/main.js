@@ -15,7 +15,8 @@ function setup() {
     document.getElementById("H_slider").value = H;
     document.getElementById("L_slider").value = L;
     canvas = document.getElementById("sketch-holder");
-    c = canvas.getContext("2d");	
+    c = canvas.getContext("2d");
+    c.willReadFrequently=true;
     canvas.width = w;
     canvas.height = h;
     canvas.focus();
@@ -40,9 +41,12 @@ function draw() {
     system.update(T,H);
     system.show(c, canvas.width, canvas.height);
     t+=dt;
-    Plotly.extendTraces("time-plot", {x: [[t], [t], [t]], y: [[H],[system.m],[system.e]]}, [0, 1, 2], nt)
-    Plotly.extendTraces("parametric-plot", {x: [[H]], y: [[system.m]]}, [0], nt)
-    requestAnimationFrame(draw);    
+    Plotly.extendTraces("time-plot", {x: [[t], [t], [t]], y: [[H],[system.m],[system.e]]}, [0, 1, 2], nt);
+    Plotly.extendTraces("parametric-plot", {x: [[H]], y: [[system.m]]}, [0], nt);
+    if( (t/dt)%ndt_refresh_gibbs == 0) {
+      plotGibbs(T,system.N);
+    }
+    requestAnimationFrame(draw);
 }
 
 /* Interactive functions */
@@ -59,8 +63,8 @@ function changeH(value) {
 }
 
 function changeL(value) {
-    L = parseFloat(value)
-    document.getElementById("L_label").innerHTML = L
+    L = parseFloat(value);
+    document.getElementById("L_label").innerHTML = L;
     system.resize(L);
 }
 
