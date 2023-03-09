@@ -4,7 +4,7 @@ var nt = 500; //max length of the trace
 var dt = 1;
 var t = 0;
 var ndt_refresh_gibbs = 50
-var gmax = 0.5
+var gmax = 1.0
 var trace0 = {
     x: [],
     y: [],
@@ -81,9 +81,9 @@ Plotly.newPlot("parametric-plot", [trace3, trace4], layout1, {responsive: true, 
 var trace5 = {
     x: [],
     y: [],
-    mode: 'markers',
+    mode: 'lines+markers',
     type: 'scatter',
-    name: '-log(P(m))/N',
+    name: 'Prob(m|h)',
     line: {color: '#ff9933'}
 }
 var layout2 = {
@@ -92,8 +92,8 @@ var layout2 = {
 	range: [-1.1,1.1]
     },
     yaxis: {
-	title: { text: 'g(m)-Hm'},
-	range: [-gmax, gmax]
+	title: { text: 'Normalized counts'},
+	range: [0.0, 1.0]
     },
     margin: {t: 15, r:5, l: 50, b:50},
     legend: {x:0, y:1.2, "orientation": "h"}
@@ -131,12 +131,14 @@ function plotGibbs(T,N) { // plot h=T*atanh(m)-m
     }
     for (m of trace1.y) {
         let i = Math.floor( Nx*0.5*(1+m) );
-        ydata[i] += 1.0;
+        ydata[i] += 1.0/trace1.y.length; // *dx;
     }
+    /*
     for (let i=0;i<=Nx;i++) {
-        if(ydata[i]>0) ydata[i] = -T/N*Math.log(ydata[i]/trace1.y.length);
+        if(ydata[i]>0) ydata[i] = -T/N*Math.log(ydata[i]);
         else ydata[i] = gmax+0.1; // "infinity"
     }
+    */
     data_update = {x: xdata, y: ydata};
     Plotly.update("gibbs-plot", data_update, {});
 }

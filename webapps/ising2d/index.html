@@ -9,14 +9,19 @@
 <!--    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script> -->
 </head>
 <body>
-
+  <h1>2D Ising ferromagnet</h1>
+  <h3>Simulated on a square grid with Metropolis single-spin-flip algorithm and Periodic Boundary Conditions.</h3>
   <div class="MainGrid" width="100%">
     <div id="controls">
-      <p> White: spin up</p>
-      <p> Black: spin down</p>
-      <p> Red: spin ill-defined (should not happen)</p>
-      <p> Green: background (should not be visible)</p>
-      <h3>Controls</h3>
+      <h3>Colors:</h3>
+      <p> White: spin up.</p>
+      <p> Black: spin down.</p>
+      <p> Red: spin ill-defined.</p>
+      <p> Green: background.</p>
+      <h3>Legend:</h3>
+      <p> m: intensive magnetization.</p>
+      <p> e: intensive energy.</p>
+      <h3>Controls:</h3>
       <div class="control">
 	<div> T, temperature: <span id="T_label">2.269</span></div>
 	<div><input  type="range" id="T_slider" oninput="changeT(this.value)" min="0.001", max="5", step="0.001", value="2.269"></div>
@@ -35,7 +40,7 @@
     </div>
     
     <canvas id="sketch-holder" style="border:2px solid"></canvas>
-    <div class="PlotGrid" width="50%">
+    <div class="PlotGrid" width="100%">
       <div id="time-plot" style="border:1px solid"></div>
       <div id="gibbs-plot" style="border:1px solid"></div>
       <div id="parametric-plot" style="border:1px solid"></div>
@@ -46,7 +51,7 @@
       <p> Suggestion 3: quickly decrease T below 2.269 while H=0 --> spinodal decomposition.</p>
       <p> Suggestion 4: set T<2.269 and H=0 and reduce at minimum the size L --> flip flop.</p>
       <p> Inspired by <a href="https://www.roma1.infn.it/~rovigatl/didattica/ising.js/">Lorenzo Rovigatti's web app</a> and <a href="https://www.youtube.com/channel/UCqO9j1kihaQzlTpxJriVWMQ">Nils Berglund's YouTube channel</a>.</p>
-      <p>NOTE: Ricontrolla curva H(m). Inserisci grafico di altre osservabili dinamiche? Usa algoritmo a cluster per basse T? Aggiungi -log(istogramma di m)=G(m).</p>
+      <p>IDEE: Usa algoritmo a cluster per basse T. Implementa condizioni libere/fisse al bordo.</p>
     </div>
   </div>
 </body>
