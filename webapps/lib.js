@@ -53,3 +53,19 @@ function avgP5Colors(colArr, weightsArr) {
     }
     return color(int(r),int(g),int(b));
 }
+
+// Draw a circle on 2d context
+function drawCircle(ctx, x, y, radius, fill, stroke, strokeWidth) {
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, 2 * Math.PI, false)
+  if (fill) {
+    ctx.fillStyle = fill
+    ctx.fill()
+  }
+  if (stroke) {
+    ctx.lineWidth = strokeWidth
+    ctx.strokeStyle = stroke
+    ctx.stroke()
+  }
+}
+

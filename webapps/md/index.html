@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Molecular Dynamics in 2D</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<!--    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script> -->
+</head>
+<body>
+  <h1>Molecular Dynamics in 2D</h1>
+  <h3>Lennard-Jones system in a square 2D box with Periodic Boundary Conditions.</h3>
+  <div class="MainGrid" width="100%">
+    <div id="controls">
+      <h3>Legend:</h3>
+      <h3>Controls:</h3>
+      <div class="control">
+	<div> T, temperature: <span id="T_label">2.0</span></div>
+	<div><input  type="range" id="T_slider" oninput="changeT(this.value)" min="0.001", max="5", step="0.001", value="2.0"></div>
+      </div>
+      
+      <div class="control">
+	<div> P, pressure (DISABLED): <span id="P_label">0.0</span></div>
+	<div><input  type="range" id="P_slider" oninput="changeP(this.value)" min="-1.0", max="1.0", step="0.01", value="0.0"></div>
+      </div>
+      
+      <div class="control">
+	<div> L, box side (DISABLED): <span id="L_label">20</span></div>
+	<div><input  type="range" id="L_slider" oninput="changeL(this.value)" min="10", max="30", step="1", value="20"></div>
+      </div>
+      <button type="button" onclick="system.init_random()">Restart RANDOM</button>
+      <button type="button" onclick="system.init_square()">Restart from SQUARE</button>
+      <button type="button" onclick="system.init_hex()">Restart from HEX (DISABLED)</button>
+      <button type="button" onclick="system.init_maxboltz(T)">Draw velocities from Maxwell-Boltzmann</button>
+    </div>
+    
+    <canvas id="sketch-holder" style="border:2px solid"></canvas>
+    <div class="PlotGrid" width="100%">
+      <div id="time-plot" style="border:1px solid"></div>
+      <div id="free-energy-plot" style="border:1px solid"></div>
+      <div id="parametric-plot" style="border:1px solid"></div>
+    </div>
+    <div id="comments">
+      <p> Inspired by <a href="https://www.softmatterdemos.org">Soft Matter Demos</a>.</p>
+      <p> IDEAS: add time integrator in NVE, NVT and NPT; add g(r) and S(q).</p>
+    </div>
+  </div>
+</body>
+
+<script type="text/javascript" src="../lib.js"></script>
+<script type="text/javascript" src="plotly-setup.js"></script>
+<script type="text/javascript" src="classes.js"></script>
+<script type="text/javascript" src="main.js"></script>
+
+</html> 
