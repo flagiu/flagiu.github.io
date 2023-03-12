@@ -36,11 +36,20 @@ body {
     grid-column: 1;
     grid-row: 1;
 }
+#parametric-plot {
+    grid-column: 1;
+    grid-row: 2;
+}
 #free-energy-plot {
     grid-column: 1;
     grid-row: 3;
 }
-#parametric-plot {
-    grid-column: 1;
+
+#rdf-plot {
+    grid-column: 2;
+    grid-row: 1;
+}
+#sq-plot {
+    grid-column: 2;
     grid-row: 2;
 }

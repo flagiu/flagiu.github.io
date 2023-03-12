@@ -1,68 +1,15 @@
-class Vector {
-    constructor(x,y) {
-	this.x = x;
-	this.y = y;
-    }
-    
-    sq() {
-        return this.x*this.x + this.y*this.y;
-    }
-    norm() {
-        return Math.sqrt(this.sq());
-    }
-    dot(vec) {
-        return this.x*vec.x + this.y*vec.y;
-    }
-
-    add(vec) {
-        return new Vector( this.x+vec.x, this.y+vec.y );
-    }
-    sub(vec) {
-        return new Vector( this.x-vec.x, this.y-vec.y );
-    }
-    opposite() {
-        return new Vector( -this.x, -this.y);
-    }
-    
-    add_inplace(vec) {
-        this.x = this.x+vec.x;
-        this.y = this.y+vec.y;
-    }
-    sub_inplace(vec) {
-        this.x = this.x-vec.x;
-        this.y = this.y-vec.y;
-    }
-    opposite_inplace() {
-        this.x = -this.x;
-        this.y = -this.y;
-    }
-}
-
-// Generate two random Gaussian variables with  Marsaglia polar method
-function Gaussian2D(mean, std) {
-    var u,v,s;
-    do {
-        u = 2*Math.random() - 1.0; // uniform in (-1,1)
-        v = 2*Math.random() - 1.0;
-        s = u*u + v*v;
-    } while (s >= 1);
-    if(s!=0) { s = Math.sqrt( -2*Math.log(s) / s ); }
-    return new Vector( mean + std*(u*s), mean + std*(v*s) );
-}
-
-/******************************************************************/
-
 class Particle {
     constructor(type, sigma, x, y, vx, vy) {
 	this.type = type;
 	this.sigma = sigma;
 	this.pos = new Vector(x,y);
 	this.vel = new Vector(vx,vy);
+	this.color = 'red';
     }
     
-    overlaps( p, frac ) {
-        let thresh = frac*0.5*(this.sigma + p.sigma);
-        let d2 = (this.pos.sub(p.pos)).sq();
+    overlaps( p, sigmaFrac, L ) {
+        let thresh = sigmaFrac*0.5*(this.sigma + p.sigma);
+        let d2 = ( this.pos.sub(p.pos).mic(L) ).sq();
         return ( d2 < thresh*thresh );
     }
 }
@@ -75,6 +22,7 @@ class PairInteraction {
         this.force = pair_force_fun;   // arguments: (vec1,vec2)   output: vec
     }
 }
+
 function LJenergy(posA, posB) {
     let x2 = 1.0/(posA.sub(posB)).sq(); // (sigma/r)^2
     let x6 = x2*x2*x2;
@@ -104,6 +52,8 @@ class System {
 	this.ene_kin = 0.0; // per particle
 	this.ene_pot = 0.0; // per particle
 	this.virial = 0.0;
+	
+	this.initRanFrac = 0.9; // allows putting two particles within 0.9 of their hard sphere distance, when initializing random
     }
     
     init_random(maxcount = 10000) {
@@ -119,14 +69,18 @@ class System {
                 overlap = false;
                 for( j=0; j<i; j++)
                 {
-                    if( this.ps[i].overlaps( this.ps[j], 1.0 ) )
+                    if( this.ps[i].overlaps( this.ps[j], this.initRanFrac, this.L ) )
                     {
                         overlap=true;
                         break;
                     }
                 }
                 count++;
-            } while( overlap || count<maxcount );
+            } while( overlap && count<maxcount );
+            if(count>=maxcount) {
+                console.log('WARNING: random initialization falied for particle',i);
+                this.ps[i].color = 'blue';
+            }
 	}
     }
     
@@ -245,8 +199,10 @@ class System {
             y = Math.floor(yfactor * this.ps[i].pos.y);
             radius = 0.5*this.ps[i].sigma*factor;
             //console.log(i,x,y,radius);
-            drawCircle(c, x, y, radius, 'red', 'black', 2);
+            drawCircle(c, x, y, radius, this.ps[i].color, 'black', 2);
 	}
     }
     
 }
+
+//export class System

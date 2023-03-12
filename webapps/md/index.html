@@ -14,6 +14,7 @@
   <div class="MainGrid" width="100%">
     <div id="controls">
       <h3>Legend:</h3>
+      no legend
       <h3>Controls:</h3>
       <div class="control">
 	<div> T, temperature: <span id="T_label">2.0</span></div>
@@ -33,24 +34,39 @@
       <button type="button" onclick="system.init_square()">Restart from SQUARE</button>
       <button type="button" onclick="system.init_hex()">Restart from HEX (DISABLED)</button>
       <button type="button" onclick="system.init_maxboltz(T)">Draw velocities from Maxwell-Boltzmann</button>
+      <h3>Analysis:</h3>
+      <div class="control">
+	<div> n. points for g(r): <span id="rdf_label">100</span></div>
+	<div><input  type="range" id="rdf_slider" oninput="changeRDF(this.value)" min="50", max="300", step="10", value="100"></div>
+      </div>
+      <button type="button" onclick="system.computeRDF(nbins_rdf); plotRDF(system.rdf, system.L)">Compute g(r)</button>
+      <div class="control">
+	<div> max. wavenumber: <span id="sq_label">100</span></div>
+	<div><input  type="range" id="sq_slider" oninput="changeSq(this.value)" min="10", max="200", step="10", value="100"></div>
+      </div>
+      <button type="button" onclick="system.computeSq(npoints_sq); plotSq(system.sq, system.L)">Compute S(q)</button>
     </div>
     
     <canvas id="sketch-holder" style="border:2px solid"></canvas>
     <div class="PlotGrid" width="100%">
       <div id="time-plot" style="border:1px solid"></div>
-      <div id="free-energy-plot" style="border:1px solid"></div>
       <div id="parametric-plot" style="border:1px solid"></div>
+      <div id="free-energy-plot" style="border:1px solid"></div>
+      <div id="rdf-plot" style="border:1px solid"></div>
+      <div id="sq-plot" style="border:1px solid"></div>
     </div>
     <div id="comments">
       <p> Inspired by <a href="https://www.softmatterdemos.org">Soft Matter Demos</a>.</p>
-      <p> IDEAS: add time integrator in NVE, NVT and NPT; add g(r) and S(q).</p>
+      <p> IDEAS: add time integrator in NVE, NVT and NPT; add S(qx,qy) heatmap; ricontrolla S(q).</p>
     </div>
   </div>
 </body>
 
 <script type="text/javascript" src="../lib.js"></script>
 <script type="text/javascript" src="plotly-setup.js"></script>
-<script type="text/javascript" src="classes.js"></script>
+<script type="text/javascript" src="classes-math.js"></script>
+<script type="text/javascript" src="classes-md.js"></script>
+<script type="text/javascript" src="classes-mdanalysis.js"></script>
 <script type="text/javascript" src="main.js"></script>
 
 </html> 

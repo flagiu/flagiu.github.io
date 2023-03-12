@@ -3,9 +3,11 @@ var nt = 500; //max length of the trace
 // Time plot
 var dt = 0.001; // internal units
 var t = 0;
-var ndt_refresh_thermo = 50
-var ndt_refresh_free_energy = 50
-var gmax = 1.0
+var ndt_refresh_thermo = 50;
+var ndt_refresh_free_energy = 50;
+var ndt_refresh_rdf = 50;
+var gmax = 1.0; // free energy
+
 var trace0 = {
     x: [],
     y: [],
@@ -46,13 +48,16 @@ var layout0 = {
   },
   yaxis: {
     title: { text: ''},
-      range: [-5,5]
+    autorange: true
   },
     margin: {t: 15, r:5, l: 50, b:50},
     legend: {x:0, y:1.2, "orientation": "h"}
 }
 Plotly.newPlot("time-plot", [trace0, trace1, trace2, trace3], layout0, {responsive: true, displayModeBar: false});
 
+function updateTimePlot(y0,y1,y2,y3) {
+    Plotly.extendTraces("time-plot", {x: [[t], [t], [t], [t]], y: [[y0], [y1], [y2], [y3]]}, [0, 1, 2, 3], nt);
+}
 // Parametric plot v vs. P
 
 var trace4 = {
@@ -77,7 +82,10 @@ var layout1 = {
 }
 Plotly.newPlot("parametric-plot", [trace4], layout1, {responsive: true, displayModeBar: false});
 
-// Helmoltz/Gibbs free energy (histogram of V/P)
+function updateParametricPlot(v,P) {
+        Plotly.extendTraces("parametric-plot", {x: [[v]], y: [[P]]}, [0], nt);
+}
+//----------------- Helmoltz/Gibbs free energy (histogram of V/P) -------------------------------------//
 
 var trace5 = {
     x: [],
@@ -118,4 +126,65 @@ function plotFreeEnergy() { // x = molar volume
     }
     data_update = {x: xdata, y: ydata};
     Plotly.update("free-energy-plot", data_update, {});
+}
+
+//---------------------------------------- g(r) -------------------------------//
+var trace6 = {
+    x: [],
+    y: [],
+    mode: 'lines+markers',
+    type: 'scatter',
+    name: 'RDF',
+    line: {color: '#ff9933'}
+}
+var layout3 = {
+    xaxis: {
+	title: { text: 'r'},
+	autorange: true
+    },
+    yaxis: {
+	title: { text: 'g(r)'},
+	autorange: true
+    },
+    margin: {t: 15, r:5, l: 50, b:50},
+    legend: {x:0, y:1.2, "orientation": "h"}
+}
+Plotly.newPlot("rdf-plot", [trace6], layout3, {responsive: false, displayModeBar: false});
+
+function plotRDF(rdf, L) {
+    let r = new Float32Array(rdf.length);
+    let binsize = (0.5*L.min())/(rdf.length - 1);
+    for (let i=0;i<rdf.length;i++) r[i] = (i+0.5)*binsize;
+    Plotly.update("rdf-plot", {x: r, y: rdf});
+}
+
+//---------------------- S(q) -------------------------------------------------------//
+
+var trace7 = {
+    x: [],
+    y: [],
+    mode: 'lines+markers',
+    type: 'scatter',
+    name: 'S(q)',
+    line: {color: '#ff9933'}
+}
+var layout4 = {
+    xaxis: {
+	title: { text: 'q'},
+	autorange: true
+    },
+    yaxis: {
+	title: { text: 'S(q)'},
+	autorange: true
+    },
+    margin: {t: 15, r:5, l: 50, b:50},
+    legend: {x:0, y:1.2, "orientation": "h"}
+}
+Plotly.newPlot("sq-plot", [trace7], layout4, {responsive: false, displayModeBar: false});
+
+function plotSq(sq, L) {
+    let q = new Float32Array(sq.length);
+    let dq = 2*3.141592/L.max();
+    for (let i=0;i<sq.length;i++) q[i] = (i+0.5)*dq;
+    Plotly.update("sq-plot", {x: q, y: sq});
 }
