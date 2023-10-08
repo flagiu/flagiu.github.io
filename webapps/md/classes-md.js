@@ -1,12 +1,12 @@
 class Particle {
     constructor(type, sigma, mass, x, y, vx, vy) {
-	this.type = type;
-	this.sigma = sigma;
-    this.mass = mass;
-	this.pos = new Vector(x,y);
-	this.vel = new Vector(vx,vy);
-	this.color = 'red';
-    this.force = new Vector(0.0,0.0);
+        this.type = type;
+        this.sigma = sigma;
+        this.mass = mass;
+        this.pos = new Vector(x,y);
+        this.vel = new Vector(vx,vy);
+        this.color = 'red';
+        this.force = new Vector(0.0,0.0);
     }
 
     set_force(fx,fy) {
@@ -23,8 +23,16 @@ class Particle {
         if(integrator=="Euler") {
             this.vel.add_inplace( this.force.mult_scalar( dt/this.mass ) );
             this.pos.add_inplace( this.vel.mult_scalar( dt ) );
+            this.pos.mic_inplace(L); // periodic boundary condition
+        } else if(integrator=="Verlet part 1") {
+            // force(t)
+            this.vel.add_inplace( this.force.mult_scalar( 0.5*dt/this.mass ) );
+            this.pos.add_inplace( this.vel.mult_scalar( dt ) );
+            this.pos.mic_inplace(L); // periodic boundary condition
+        } else if(integrator=="Verlet part 2") {
+            // force(t+dt)
+            this.vel.add_inplace( this.force.mult_scalar( 0.5*dt/this.mass ) );
         }
-        this.pos.mic_inplace(L); // periodic boundary condition
     }
 }
 
@@ -40,14 +48,14 @@ class PairInteraction {
 function LJenergy(posA, posB, L) {
     let x2 = 1.0/(posA.sub(posB).mic(L)).sq(); // (sigma/r)^2
     let x6 = x2*x2*x2;
-    return ( x6*x6 - x6 );
+    return 4.0*( x6*x6 - x6 );
 }
-function LJforce(posA, posB, L) {
+function LJforce(posA, posB, L) { // from B to A
     let rAB = posA.sub(posB).mic(L);
-    let x2 = 1.0/(rAB).sq(); // (sigma/r)^2
+    let x2 = 1.0/rAB.sq(); // (sigma/r)^2
     let x8 = x2*x2*x2*x2;
     let x14 = x8*x2*x2*x2;
-    let f = 6*( 2*x14 - x8 );
+    let f = 4.0*6.0*( 2.0*x14 - x8 );
     return new Vector( f*rAB.x, f*rAB.y );
 }
 
@@ -69,6 +77,8 @@ class System {
         this.integrator = "None";
         
         this.initRanFrac = 0.9; // allows putting two particles within 0.9 of their hard sphere distance, when initializing random
+        this.startedRDF = false;
+        this.startedSq = false;
     }
     
     init_random(maxcount = 10000) {
@@ -125,10 +135,18 @@ class System {
     }
     
     init_maxboltz(T) {
+        // remember to divide by the mass!
         let sqrtT = Math.sqrt(T);
+        let velCM = new Vector(0.0,0.0);
         for( let i=0; i<this.N; i++ )
         {
-            this.ps[i].vel = Gaussian2D( 0.0, sqrtT );
+            this.ps[i].vel = Gaussian2D( 0.0, sqrtT/this.ps[i].mass );
+            velCM.add_inplace(this.ps[i].vel.mult_scalar(1/this.N));
+        }
+        // remove the average
+        for( let i=0; i<this.N; i++ )
+        {
+            this.ps[i].vel.sub(velCM);
         }
     }
     //---------- end of construction -------------------//
@@ -146,15 +164,15 @@ class System {
         return this.rho;
     }
     EnergyKinetic() {
-        this.ene_kin = 0.0;
+        this.ene_kin = 0.0; // per particle
         for( let i=0; i<this.N; i++ )
         {
-            this.ene_kin += 0.5 * this.ps[i].vel.sq() / this.N;
+            this.ene_kin += 0.5 * this.ps[i].mass * this.ps[i].vel.sq() / this.N;
         }
         return this.ene_kin;
     }
     EnergyPotential() {
-        this.ene_pot = 0.0;
+        this.ene_pot = 0.0; // per particle
         for( let i=0; i<this.N; i++ )
         {
             for( let j=i+1; j<this.N; j++ )
@@ -170,7 +188,7 @@ class System {
         {
             for( let j=i+1; j<this.N; j++ )
             {
-                this.tot_force.add_inplace( this.pi.force( this.ps[i].pos, this.ps[j].pos, this.L ) / this.N );
+                this.tot_force.add_inplace( this.pi.force( this.ps[i].pos, this.ps[j].pos, this.L ));
             }
         }
         return this.tot_force;
@@ -201,12 +219,10 @@ class System {
         this.integrator = value;
     }
 
-    update(T,P) {
+    calc_all_forces() {
         let N=this.N;
-	    let L=this.L;
-	    var i,j, r_ij, f_ij;
-        // Calculate forces
-        for(i=0;i<N;i++) this.ps[i].set_force(0.0, 0.0);
+        var i,j, f_ij;
+        for(i=0;i<N;i++) { this.ps[i].set_force(0.0, 0.0); }
         for(i=0;i<N;i++) {
             for(j=i+1;j<N;j++) {
                 f_ij = this.pi.force( this.ps[i].pos, this.ps[j].pos, this.L );
@@ -214,12 +230,21 @@ class System {
                 this.ps[j].force.add_inplace( f_ij.mult_scalar(-1.0/N) );
             }
         }
-        //
-        // Integrate
+    }
+
+    update(T,P) {
+        let N=this.N;
+	    let L=this.L;
+	    var i;
         if(this.integrator=="NVE - Euler") {
-            for(i=0;i<N;i++) {
-                this.ps[i].update(T,P,L, "Euler");
-            }
+            this.calc_all_forces();
+            for(i=0;i<N;i++) { this.ps[i].update(T,P,L, "Euler"); }
+        }
+        if(this.integrator=="NVE - Verlet") {
+            // To start the algorithm, I assume at t=0 all forces are zero !
+            for(i=0;i<N;i++) { this.ps[i].update(T,P,L, "Verlet part 1"); }
+            this.calc_all_forces();
+            for(i=0;i<N;i++) { this.ps[i].update(T,P,L, "Verlet part 2"); }
         }
     }
     
@@ -230,6 +255,7 @@ class System {
         var x,y,radius;
         c.clearRect(0, 0, w, h);
         c.fillStyle = "#000000"; // black background (not working...)
+        c.fill();
         var x,y;
         for(let i=0; i<this.N; i++) {
             let x_off = this.ps[i].pos.x + 0.5*this.L.x;

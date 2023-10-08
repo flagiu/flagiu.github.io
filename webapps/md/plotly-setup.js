@@ -1,12 +1,12 @@
 /* Plotly graphics */
 var nt = 500; //max length of the trace
 // Time plot
-var dt = 0.001; // internal units
-var t = 0;
-var ndt_refresh_thermo = 50;
-var ndt_refresh_free_energy = 50;
-var ndt_refresh_rdf = 50;
-var gmax = 1.0; // free energy
+var dt = 0.001; // timestep (units of sqrt(m*sigma^2/eps) )
+var t=0, t_idx = 0;
+var ndt_refresh_thermo = 100;
+var ndt_refresh_free_energy = 100;
+var ndt_refresh_rdf = 100;
+var gmax = 1.0; // free energy (units of eps)
 
 var trace0 = {
     x: [],
@@ -21,7 +21,7 @@ var trace1 = {
     y: [],
     mode: 'lines',
     type: 'scatter',
-    name: 'v',
+    name: 'ndens',
     line: {color: '#ff9933'}
 };
 var trace2 = {
@@ -46,7 +46,7 @@ var trace3b = {
     mode: 'lines',
     type: 'scatter',
     name: 'ene_tot',
-    line: {color: '#619083'}
+    line: {color: '#61f11f'}
 };
 
 var layout0 = {
@@ -79,7 +79,7 @@ var trace4 = {
 }
 var layout1 = {
     xaxis: {
-	title: { text: 'v'},
+	title: { text: 'ndens'},
 	range: [0.0,10.0]
     },
     yaxis: {

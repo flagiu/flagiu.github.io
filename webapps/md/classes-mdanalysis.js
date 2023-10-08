@@ -1,17 +1,21 @@
 // must be imported after 'classes-md.js'
-
+System.prototype.start_RDF = function(nbins) {
+  this.startedRDF = true;
+  this.rdf = new Float32Array(nbins);
+  this.num_rdf = 1;
+}
 System.prototype.computeRDF = function(nbins) {
     //if( typeof(nbins) !== "number" ) { throw Error('ERROR: Incorrect type for nbins.'); }
     let binsize = (0.5*this.L.min())/nbins;
     var i,j, k;
-    var rdf = new Float32Array(nbins);
+    var gr = new Float32Array(nbins);
     for( i=0; i<this.N; i++ )
     {
         for( j=i+1; j<this.N; j++ )
         {
             let rij = ( this.ps[i].pos.sub(this.ps[j].pos) ).mic(this.L);
             k = Math.floor( rij.norm() / binsize );
-            if(k<nbins) rdf[k] += 1.0;
+            if(k<nbins) gr[k] += 1.0;
         }
     }
     var shell1 = 0.0, shell2, r;
@@ -20,25 +24,29 @@ System.prototype.computeRDF = function(nbins) {
     {
         r = (k+1)*binsize;
         shell2 = r*r;
-        rdf[k] /= ( normalization * (shell2-shell1) );
+        gr[k] /= ( normalization * (shell2-shell1) );
         shell1 = shell2;
+        // average over samples
+        this.rdf[k] =(this.rdf[k]*(this.num_rdf-1) + gr[k] )/this.num_rdf ;
     }
-    this.rdf = rdf;
+    this.gr = gr;
+    this.num_rdf+=1;
 }
 
+
 System.prototype.InitStructureFactor = function(npoints) {
-    this.sq2D = new Float32Array(npoints*npoints);
-    this.sq = new Float32Array(npoints); // this is averaged over directions (nx,ny) such that n_prev < sqrt(nx^2+ny^2) < n
-    this.sqcounter = new Float32Array(npoints);
-    for(let i=0;i<npoints*npoints;i++)
-    {
-      this.sq2D[i] = 1.0;
-      if(i<npoints)
-      {
-        this.sq[i] = 0.0;
-        this.sqcounter[i] = 0;
-      }
+  this.startedSq = true;
+  this.num_sq = 1;
+  this.sq2D = new Float32Array(npoints*npoints);
+  this.sq = new Float32Array(npoints); // this is averaged over directions (nx,ny) such that n_prev < sqrt(nx^2+ny^2) < n
+  this.sqcounter = new Float32Array(npoints);
+  for(let i=0;i<npoints*npoints;i++) {
+    this.sq2D[i] = 0.0;
+    if(i<npoints) {
+      this.sq[i] = 0.0;
+      this.sqcounter[i] = 0;
     }
+  }
 }
 
 System.prototype.computeSq = function(npoints) {
@@ -46,8 +54,18 @@ System.prototype.computeSq = function(npoints) {
     let dqx = 2*3.141592 / this.L.x;
     let dqy = 2*3.141592 / this.L.y;
     let dq = Math.sqrt(dqx*dqy); // how do I take into account for non-cubic boxes?
-    var i,j, nx,ny, n, re;
-    this.InitStructureFactor(npoints);
+    var i,j, nx,ny, n, re, idx2D;
+    
+    this.sq2D_now = new Float32Array(npoints*npoints);
+    this.sq_now = new Float32Array(npoints);
+    for(let i=0;i<npoints*npoints;i++) {
+      this.sq2D_now[i] = 1.0; // initialize on diagonal part i==j
+      if(i<npoints) {
+        this.sq_now[i] = 0.0;
+        this.sqcounter[i] = 0;
+      }
+    }
+
     for( nx=0; nx<npoints; nx++ )
     {
         for( ny=0; ny<npoints; ny++ )
@@ -57,8 +75,9 @@ System.prototype.computeSq = function(npoints) {
               for(j=i+1; j<this.N; j++)
               {
                 let rij = ( this.ps[i].pos.sub(this.ps[j].pos) ).mic(this.L);
-                re = Math.cos( nx*dqx*rij.x + ny*dqy*rij.y ) * 2/this.N;
-                this.sq2D[ nx*npoints + ny ] += re; // imaginary part is zero
+                re = Math.cos( nx*dqx*rij.x + ny*dqy*rij.y ) / this.N;
+                idx2D = nx*npoints + ny;
+                this.sq2D_now[ idx2D ] += 2*re; // imaginary part is zero; count twice the particles
               }
             }
             // average 2D spherically into 1D
@@ -66,12 +85,18 @@ System.prototype.computeSq = function(npoints) {
             if(n>0 && n<npoints)
             {
               this.sqcounter[n] ++;
-              this.sq[n] += this.sq2D[ nx*npoints + ny ];
+              this.sq_now[n] += this.sq2D_now[ idx2D ];
             }
+            // average over samples
+            this.sq2D[idx2D] = (this.sq2D[idx2D]*(this.num_sq-1) + this.sq2D_now[idx2D] )/this.num_sq ;
         }
     }
     for(n=0;n<npoints;n++)
     {
-      this.sq[n] /= this.sqcounter[n];
+      // average over wavevectors
+      this.sq_now[n] /= this.sqcounter[n];
+      // average over samples
+      this.sq[n] = (this.sq[n]*(this.num_sq-1) + this.sq_now[n] )/this.num_sq ;
     }
+    this.num_sq+=1;
 }

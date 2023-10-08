@@ -17,18 +17,18 @@
       no legend
       <h3>Controls:</h3>
       <div class="control">
-	      <div> T, temperature: <span id="T_label">2.0</span></div>
-	      <div><input  type="range" id="T_slider" oninput="changeT(this.value)" min="0.001", max="5", step="0.001", value="2.0"></div>
+        <label for="T_number">T, temperature</label>
+        <input type="number" id="T_number" step="0.001" min="0.001" max="5" oninput="changeT(this.value)">
       </div>
       
       <div class="control">
-        <div> P, pressure (DISABLED): <span id="P_label">0.0</span></div>
-        <div><input  type="range" id="P_slider" oninput="changeP(this.value)" min="-1.0", max="1.0", step="0.01", value="0.0"></div>
+        <label for="P_number"> P, pressure (DISABLED)</label>
+        <input  type="number" id="P_number" min="-1.0", max="1.0", step="0.01" oninput="changeP(this.value)"></input>
       </div>
       
       <div class="control">
-        <div> L, box side (DISABLED): <span id="L_label">20</span></div>
-      	<div><input  type="range" id="L_slider" oninput="changeL(this.value)" min="10", max="30", step="1", value="20"></div>
+        <label for="L_number"> L, box side (ONLY EXPANSION)</label>
+      	<input  type="number" id="L_number" min="10", max="30", step="1" oninput="changeL(this.value)"></input>
       </div>
       <button type="button" onclick="system.init_random()">Restart RANDOM</button>
       <button type="button" onclick="system.init_square()">Restart from SQUARE</button>
@@ -38,20 +38,23 @@
       <select id="integrator" onclick="system.set_integrator(this.value)">
         <option value="None">None (Freeze)</option>
         <option value="NVE - Euler">NVE - Euler</option>
+        <option value="NVE - Verlet">NVE - Verlet</option>
         <option value="NVE">NVT (DISABLED)</option>
         <option value="NPT">NPT (DISABLED)</option>
       </select>
       <h3>Analysis:</h3>
       <div class="control">
-	<div> n. points for g(r): <span id="rdf_label">100</span></div>
-	<div><input  type="range" id="rdf_slider" oninput="changeRDF(this.value)" min="50", max="300", step="10", value="100"></div>
+        <label for="rdf_bins_number">n. points for g(r)</label>
+        <input type="number" id="rdf_bins_number" min="50", max="300", step="10" oninput="changeRDF(this.value)"></input>
       </div>
-      <button type="button" onclick="system.computeRDF(nbins_rdf); plotRDF(system.rdf, system.L)">Compute g(r)</button>
+      <button type="button" onclick="system.start_RDF(nbins_rdf);">(Re)start g(r) computation</button>
+      <button type="button" onclick="system.startedRDF=false;">Stop g(r) computation</button>
       <div class="control">
-	<div> max. wavenumber: <span id="sq_label">100</span></div>
-	<div><input  type="range" id="sq_slider" oninput="changeSq(this.value)" min="10", max="200", step="10", value="100"></div>
+        <label for="sq_npoints_number">max. wavenumber</label>
+        <input type="number" id="sq_npoints_number" min="10", max="200", step="10" oninput="changeSq(this.value)"></input>
       </div>
-      <button type="button" onclick="system.computeSq(npoints_sq); plotSq(system.sq, system.L)">Compute S(q)</button>
+      <button type="button" onclick="system.InitStructureFactor(npoints_sq);">(Re)start S(q) computation</button>
+      <button type="button" onclick="system.startedSq=false;">Stop S(q) computation</button>
     </div>
     
     <canvas id="sketch-holder" style="border:2px solid"></canvas>
@@ -64,8 +67,8 @@
     </div>
     <div id="comments">
       <p> Inspired by <a href="https://www.softmatterdemos.org">Soft Matter Demos</a>.</p>
-      <p> NON FUNZIONA L'INTEGRATORE.</p>
-      <p> IDEAS: add time integrator in NVE, NVT and NPT; add S(qx,qy) heatmap; ricontrolla S(q).</p>
+      <p> Ricontrolla: energia totale non conservata.</p>
+      <p> IDEAS: add time integrator in NVT and NPT; add S(qx,qy) heatmap; ricontrolla S(q).</p>
     </div>
   </div>
 </body>
