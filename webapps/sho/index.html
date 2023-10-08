@@ -10,7 +10,7 @@
 </head>
 <body>
   <h1>Stochastic Harmonic oscillator in 1D</h1>
-  <h3>Point particle subject to a spring force -kx and a stochastic term (Gaussian noise + friction -eta*v).</h3>
+  <h3>System of N independent point particles, subject to a spring force -k*x and a stochastic term: Gaussian noise (T*noise) + friction (-eta*v).</h3>
   <div class="MainGrid" width="100%">
     <div id="controls">
       <h3>Legend:</h3>
@@ -41,6 +41,11 @@
 	<div><input  type="range" id="k_slider" oninput="change_k(this.value)" min="0.01", max="100", step="0.01", value="1.0"></div>
       </div>
 
+      <div class="control">
+            <div> N: <span id="N_label">100</span></div>
+            <div><input  type="range" id="N_slider" oninput="change_N(this.value)" min="1", max="1000", step="1", value="100"></div>
+            </div>
+
       <h3>Restart parameters</h3>
       <div class="control">
 	<div> x0, initial position (m): <span id="x0_label">0.0</span></div>
@@ -50,22 +55,19 @@
 	<div> v0, initial speed (m/s): <span id="v0_label">1.0</span></div>
 	<div><input  type="range" id="v0_slider" oninput="change_v0(this.value)" min="-100", max="100", step="0.01", value="1.0"></div>
       </div>
-      <button type="button" onclick="restart()">Restart</button>
+      <button type="button" onclick="restart()">Restart x and v</button>
       <h3>Analysis:</h3>
       <p>nothing to show</p>
     </div>
     
     <div id="particle-plot" style="border:2px solid"></div>
     <div class="PlotGrid" width="100%">
-      <div id="time-plot" style="border:1px solid"></div>
-      <div id="parametric-plot" style="border:1px solid"></div>
-      <div id="msd-plot" style="border:1px solid"></div>
-      <div id="autocorr-plot" style="border:1px solid"></div>
-      <div id="velocity-autocorr-plot" style="border:1px solid"></div>
+      <div id="average-plot" style="border:1px solid"></div>
+      <div id="average2-plot" style="border:1px solid"></div>
     </div>
     <div id="comments">
       <p> Integration is carried through Euler-Maruyama method.</p>
-      <p> IDEAS: Add a population of particles --> you can compute instantaneoulsy averages over noise</p>
+      <p> All particles start with the same velocity and position. Therefore it will take some time to decorrelate.</p>
     </div>
   </div>
 </body>

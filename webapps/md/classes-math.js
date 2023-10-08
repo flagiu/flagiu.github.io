@@ -1,9 +1,17 @@
 class Vector {
     constructor(x,y) {
-	this.x = x;
-	this.y = y;
+        this.x = x;
+        this.y = y;
     }
     
+    mult_scalar_inplace(s) {
+        this.x = s*this.x;
+        this.y = s*this.y;
+    }
+    mult_scalar(s) {
+        return new Vector(s*this.x, s*this.y);
+    }
+
     sq() {
         return this.x*this.x + this.y*this.y;
     }

@@ -1,16 +1,30 @@
 class Particle {
-    constructor(type, sigma, x, y, vx, vy) {
+    constructor(type, sigma, mass, x, y, vx, vy) {
 	this.type = type;
 	this.sigma = sigma;
+    this.mass = mass;
 	this.pos = new Vector(x,y);
 	this.vel = new Vector(vx,vy);
 	this.color = 'red';
+    this.force = new Vector(0.0,0.0);
+    }
+
+    set_force(fx,fy) {
+        this.force = new Vector(fx,fy);
     }
     
     overlaps( p, sigmaFrac, L ) {
         let thresh = sigmaFrac*0.5*(this.sigma + p.sigma);
         let d2 = ( this.pos.sub(p.pos).mic(L) ).sq();
         return ( d2 < thresh*thresh );
+    }
+
+    update(T,P,L,integrator) {
+        if(integrator=="Euler") {
+            this.vel.add_inplace( this.force.mult_scalar( dt/this.mass ) );
+            this.pos.add_inplace( this.vel.mult_scalar( dt ) );
+        }
+        this.pos.mic_inplace(L); // periodic boundary condition
     }
 }
 
@@ -23,13 +37,13 @@ class PairInteraction {
     }
 }
 
-function LJenergy(posA, posB) {
-    let x2 = 1.0/(posA.sub(posB)).sq(); // (sigma/r)^2
+function LJenergy(posA, posB, L) {
+    let x2 = 1.0/(posA.sub(posB).mic(L)).sq(); // (sigma/r)^2
     let x6 = x2*x2*x2;
     return ( x6*x6 - x6 );
 }
-function LJforce(posA, posB) {
-    let rAB = posA.sub(posB);
+function LJforce(posA, posB, L) {
+    let rAB = posA.sub(posB).mic(L);
     let x2 = 1.0/(rAB).sq(); // (sigma/r)^2
     let x8 = x2*x2*x2*x2;
     let x14 = x8*x2*x2*x2;
@@ -41,31 +55,32 @@ function LJforce(posA, posB) {
 
 class System {
     constructor(N, L, pair_interaction) {
-	this.N = N;
-	this.L = new Vector(L,L); // 0 <= x <= Lx, 0 <= y <= Ly
-	this.pi = pair_interaction;
-	
-	this.ps = new Array(this.N);
-	this.V = 0.0;
-	this.v = 0.0;
-	this.rho = 0.0;
-	this.ene_kin = 0.0; // per particle
-	this.ene_pot = 0.0; // per particle
-	this.virial = 0.0;
-	
-	this.initRanFrac = 0.9; // allows putting two particles within 0.9 of their hard sphere distance, when initializing random
+        this.N = N;
+        this.L = new Vector(L,L); // 0 <= x <= Lx, 0 <= y <= Ly
+        this.pi = pair_interaction;
+        
+        this.ps = new Array(this.N);
+        this.V = 0.0;
+        this.v = 0.0;
+        this.rho = 0.0;
+        this.ene_kin = 0.0; // per particle
+        this.ene_pot = 0.0; // per particle
+        this.virial = 0.0;
+        this.integrator = "None";
+        
+        this.initRanFrac = 0.9; // allows putting two particles within 0.9 of their hard sphere distance, when initializing random
     }
     
     init_random(maxcount = 10000) {
-	var x,y, i,j, overlap, count;
-	for (i=0; i<this.N; i++)
-	{
-            count = 0;
-	    do
-	    {
-                x = Math.random() * this.L.x;
-                y = Math.random() * this.L.y;
-                this.ps[i] = new Particle(1, 1.0, x,y, 0.0, 0.0);
+        var x,y, i,j, overlap, count;
+        for (i=0; i<this.N; i++)
+        {
+                count = 0;
+            do
+            {
+                x = (Math.random()-0.5) * this.L.x;
+                y = (Math.random()-0.5) * this.L.y;
+                this.ps[i] = new Particle(1, 1.0, 1.0, x,y, 0.0, 0.0);
                 overlap = false;
                 for( j=0; j<i; j++)
                 {
@@ -81,29 +96,30 @@ class System {
                 console.log('WARNING: random initialization falied for particle',i);
                 this.ps[i].color = 'blue';
             }
-	}
+        }
     }
     
-    init_xtal(n, ax,ay, bx,by) {
-	var x,y;
-	for (let i=0; i<n; i++)
-	{
-	    for (let j=0; j<n; j++)
-	    {
-	         x = (i+0.5)*ax + (j+0.5)*bx;
-	         y = (j+0.5)*ay + (j+0.5)*by;
-	         this.ps[i*n + j] = new Particle(1, 1.0, x,y, 0.0, 0.0);
-	    }
-	}
+    init_xtal(n, ax,ay, bx,by) { // positions in [-L/2, L/2)
+        var x,y;
+        let nh=Math.floor(n/2);
+        for (let i=0; i<n; i++)
+        {
+            for (let j=0; j<n; j++)
+            {
+                x = (i-nh+0.5)*ax + (j-nh+0.5)*bx;
+                y = (j-nh+0.5)*ay + (j-nh+0.5)*by;
+                this.ps[i*n + j] = new Particle(1, 1.0, 1.0, x,y, 0.0, 0.0);
+            }
+        }
     }
     init_square() {
-	let n = Math.floor(Math.sqrt(N));
-	if( n*n != N ) console.log("Error: N not adeguate for square lattice");
-	let ax = this.L.x / n;
-	let ay = 0.0;
-	let bx = 0.0;
-	let by = this.L.y / n;
-	this.init_xtal(n, ax,ay, bx,by);
+        let n = Math.floor(Math.sqrt(N));
+        if( n*n != N ) console.log("Error: N not adeguate for square lattice");
+        let ax = this.L.x / n;
+        let ay = 0.0;
+        let bx = 0.0;
+        let by = this.L.y / n;
+        this.init_xtal(n, ax,ay, bx,by);
     }
     init_hex() {
     }
@@ -143,7 +159,7 @@ class System {
         {
             for( let j=i+1; j<this.N; j++ )
             {
-                this.ene_pot += this.pi.energy( this.ps[i].pos, this.ps[j].pos ) / this.N;
+                this.ene_pot += this.pi.energy( this.ps[i].pos, this.ps[j].pos, this.L ) / this.N;
             }
         }
         return this.ene_pot;
@@ -154,7 +170,7 @@ class System {
         {
             for( let j=i+1; j<this.N; j++ )
             {
-                this.tot_force.add_inplace( this.pi.force( this.ps[i].pos, this.ps[j].pos ) / this.N );
+                this.tot_force.add_inplace( this.pi.force( this.ps[i].pos, this.ps[j].pos, this.L ) / this.N );
             }
         }
         return this.tot_force;
@@ -166,7 +182,7 @@ class System {
         {
             for( let j=i+1; j<this.N; j++ )
             {
-                fij = this.pi.force( this.ps[i].pos, this.ps[j].pos );
+                fij = this.pi.force( this.ps[i].pos, this.ps[j].pos, this.L );
                 rij = this.ps[i].pos.sub( this.ps[j].pos );
                 this.virial += 2* rij.dot( fij ) / this.N;
             }
@@ -181,26 +197,49 @@ class System {
 
     //--------------- INTEGRATION -------------------------//
     
+    set_integrator(value) {
+        this.integrator = value;
+    }
+
     update(T,P) {
-	let L=this.L;
-	var i,j;
+        let N=this.N;
+	    let L=this.L;
+	    var i,j, r_ij, f_ij;
+        // Calculate forces
+        for(i=0;i<N;i++) this.ps[i].set_force(0.0, 0.0);
+        for(i=0;i<N;i++) {
+            for(j=i+1;j<N;j++) {
+                f_ij = this.pi.force( this.ps[i].pos, this.ps[j].pos, this.L );
+                this.ps[i].force.add_inplace( f_ij.mult_scalar( 1.0/N) );
+                this.ps[j].force.add_inplace( f_ij.mult_scalar(-1.0/N) );
+            }
+        }
+        //
+        // Integrate
+        if(this.integrator=="NVE - Euler") {
+            for(i=0;i<N;i++) {
+                this.ps[i].update(T,P,L, "Euler");
+            }
+        }
     }
     
     show(c, w, h) {
-	let xfactor = w/this.L.x;
-	let yfactor = h/this.L.y;
-	let factor = Math.sqrt(xfactor*yfactor);
-	var x,y,radius;
-	c.clearRect(0, 0, w, h);
-	c.fillStyle = "#000000"; // black background (not working...)
-	var x,y;
-	for(let i=0; i<this.N; i++) {
-	    x = Math.floor(xfactor * this.ps[i].pos.x);
-            y = Math.floor(yfactor * this.ps[i].pos.y);
+        let xfactor = w/this.L.x;
+        let yfactor = h/this.L.y;
+        let factor = Math.sqrt(xfactor*yfactor);
+        var x,y,radius;
+        c.clearRect(0, 0, w, h);
+        c.fillStyle = "#000000"; // black background (not working...)
+        var x,y;
+        for(let i=0; i<this.N; i++) {
+            let x_off = this.ps[i].pos.x + 0.5*this.L.x;
+            let y_off = this.ps[i].pos.y + 0.5*this.L.y;
+            x = Math.floor(xfactor * x_off);
+            y = Math.floor(yfactor * y_off);
             radius = 0.5*this.ps[i].sigma*factor;
             //console.log(i,x,y,radius);
             drawCircle(c, x, y, radius, this.ps[i].color, 'black', 2);
-	}
+        }
     }
     
 }

@@ -17,23 +17,30 @@
       no legend
       <h3>Controls:</h3>
       <div class="control">
-	<div> T, temperature: <span id="T_label">2.0</span></div>
-	<div><input  type="range" id="T_slider" oninput="changeT(this.value)" min="0.001", max="5", step="0.001", value="2.0"></div>
+	      <div> T, temperature: <span id="T_label">2.0</span></div>
+	      <div><input  type="range" id="T_slider" oninput="changeT(this.value)" min="0.001", max="5", step="0.001", value="2.0"></div>
       </div>
       
       <div class="control">
-	<div> P, pressure (DISABLED): <span id="P_label">0.0</span></div>
-	<div><input  type="range" id="P_slider" oninput="changeP(this.value)" min="-1.0", max="1.0", step="0.01", value="0.0"></div>
+        <div> P, pressure (DISABLED): <span id="P_label">0.0</span></div>
+        <div><input  type="range" id="P_slider" oninput="changeP(this.value)" min="-1.0", max="1.0", step="0.01", value="0.0"></div>
       </div>
       
       <div class="control">
-	<div> L, box side (DISABLED): <span id="L_label">20</span></div>
-	<div><input  type="range" id="L_slider" oninput="changeL(this.value)" min="10", max="30", step="1", value="20"></div>
+        <div> L, box side (DISABLED): <span id="L_label">20</span></div>
+      	<div><input  type="range" id="L_slider" oninput="changeL(this.value)" min="10", max="30", step="1", value="20"></div>
       </div>
       <button type="button" onclick="system.init_random()">Restart RANDOM</button>
       <button type="button" onclick="system.init_square()">Restart from SQUARE</button>
       <button type="button" onclick="system.init_hex()">Restart from HEX (DISABLED)</button>
       <button type="button" onclick="system.init_maxboltz(T)">Draw velocities from Maxwell-Boltzmann</button>
+      <label for="integrator">Integrator:</label>
+      <select id="integrator" onclick="system.set_integrator(this.value)">
+        <option value="None">None (Freeze)</option>
+        <option value="NVE - Euler">NVE - Euler</option>
+        <option value="NVE">NVT (DISABLED)</option>
+        <option value="NPT">NPT (DISABLED)</option>
+      </select>
       <h3>Analysis:</h3>
       <div class="control">
 	<div> n. points for g(r): <span id="rdf_label">100</span></div>
@@ -57,6 +64,7 @@
     </div>
     <div id="comments">
       <p> Inspired by <a href="https://www.softmatterdemos.org">Soft Matter Demos</a>.</p>
+      <p> NON FUNZIONA L'INTEGRATORE.</p>
       <p> IDEAS: add time integrator in NVE, NVT and NPT; add S(qx,qy) heatmap; ricontrolla S(q).</p>
     </div>
   </div>

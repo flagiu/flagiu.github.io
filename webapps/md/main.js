@@ -6,12 +6,13 @@ var canvas;
 var c;
 
 var N = 64; // max 324 with initRanFrac=0.9
-var L = 20; // box side (internal units)
+var L = 10; // box side (internal units)
 var T = 2.0; // temperature (internal units)
 var P = 0.0; // pressure (internal units)
 var pi = new PairInteraction( LJenergy, LJforce );
 let nbins_rdf = 100;
 let npoints_sq = 100;
+let ndt_every_frame = 10;
 
 function setup() {
     document.getElementById("T_slider").value = T; //set correct slider position
@@ -33,7 +34,10 @@ function setup() {
 
 function draw() {
     if( Math.floor(t/dt)%ndt_refresh_thermo == 0) {
-        updateTimePlot( system.Virial(), system.MolarVolume(),system.EnergyKinetic(),system.EnergyPotential() );
+        let ekin = system.EnergyKinetic();
+        let epot = system.EnergyPotential();
+        let etot = ekin+epot;
+        updateTimePlot( system.Virial(), system.MolarVolume(),ekin,epot,etot );
         updateParametricPlot( system.MolarVolume(), system.Virial() );
     }
     if( Math.floor(t/dt)%ndt_refresh_free_energy == 0) {
@@ -48,9 +52,10 @@ function draw() {
     }
     */
     system.update(T,P);
-    system.show(c, canvas.width, canvas.height);
-    t+=dt;
-    
+    for(var i=0;i<ndt_every_frame;i++) {
+        system.show(c, canvas.width, canvas.height);
+        t+=dt;
+    }
     requestAnimationFrame(draw);
 }
 

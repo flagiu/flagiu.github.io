@@ -40,6 +40,15 @@ var trace3 = {
     name: 'ene_pot',
     line: {color: '#916013'}
 };
+var trace3b = {
+    x: [],
+    y: [],
+    mode: 'lines',
+    type: 'scatter',
+    name: 'ene_tot',
+    line: {color: '#619083'}
+};
+
 var layout0 = {
   xaxis: {
     title: {
@@ -53,10 +62,10 @@ var layout0 = {
     margin: {t: 15, r:5, l: 50, b:50},
     legend: {x:0, y:1.2, "orientation": "h"}
 }
-Plotly.newPlot("time-plot", [trace0, trace1, trace2, trace3], layout0, {responsive: true, displayModeBar: false});
+Plotly.newPlot("time-plot", [trace0, trace1, trace2, trace3, trace3b], layout0, {responsive: true, displayModeBar: false});
 
-function updateTimePlot(y0,y1,y2,y3) {
-    Plotly.extendTraces("time-plot", {x: [[t], [t], [t], [t]], y: [[y0], [y1], [y2], [y3]]}, [0, 1, 2, 3], nt);
+function updateTimePlot(y0,y1,y2,y3,y4) {
+    Plotly.extendTraces("time-plot", {x: [[t], [t], [t], [t], [t]], y: [[y0], [y1], [y2], [y3], [y4]]}, [0, 1, 2, 3, 4], nt);
 }
 // Parametric plot v vs. P
 

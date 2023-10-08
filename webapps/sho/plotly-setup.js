@@ -19,7 +19,7 @@ var traceParticle = {
     mode: 'markers',
     type: 'scatter',
     name: 'particle',
-    marker: {color: '#ff0000', size: 10}
+    marker: {color: 'rgba(255,0,0, 0.5)', size: 10}
 };
 var layout0 = {
   xaxis: {
@@ -68,11 +68,25 @@ function plotParticle(T,k, x) {
        frame: { duration: 0, redraw: false }
     });
 }
+function plotSystem(T,k, system) {
+  let xGB = Math.sqrt(T/k);
+  data_update = {x: [], y: [] };
+  for(var i=0;i<system.N;i++) {
+    let x = system.particles[i].x;
+    data_update.x.push( x/xGB );
+    data_update.y.push( Energy(k,x)/T );
+  }
+  Plotly.animate("particle-plot", {data: [data_update]}, {
+     transition: { duration: 0 },
+     frame: { duration: 0, redraw: false }
+  });
+}
 
+// "time-plot"
 var trace1 = {
     x: [],
     y: [],
-    mode: 'lines+markers',
+    mode: 'markers',
     type: 'scatter',
     name: 'x, position',
     line: {color: '#6accbc'}
@@ -80,7 +94,7 @@ var trace1 = {
 var trace2 = {
     x: [],
     y: [],
-    mode: 'lines+markers',
+    mode: 'markers',
     type: 'scatter',
     name: 'v, speed',
     line: {color: '#ff9933'}
@@ -98,17 +112,17 @@ var layout1 = {
     margin: {t: 15, r:5, l: 50, b:50},
     legend: {x:0, y:1.2, "orientation": "h"}
 }
-Plotly.newPlot("time-plot", [trace1, trace2], layout1, {responsive: true, displayModeBar: false});
 
-function updateTimePlot(y0,y1) {
-    Plotly.extendTraces("time-plot", {x: [[t], [t]], y: [[y0], [y1]]}, [0, 1], nt);
+function updateTimePlot(plot_name, y0,y1) {
+    Plotly.extendTraces(plot_name, {x: [[t], [t]], y: [[y0], [y1]]}, [0, 1], nt);
 }
-// Parametric plot v vs. x
+
+// Parametric plot v vs. x "parametric-plot"
 
 var trace3 = {
     x: [],
     y: [],
-    mode: 'lines+markers',
+    mode: 'markers',
     type: 'scatter',
     name: 'data',
     line: {color: '#ff0000'}
@@ -125,9 +139,69 @@ var layout2 = {
     margin: {t: 15, r:5, l: 50, b:50},
     legend: {x:0, y:1.2, "orientation": "h"}
 }
-Plotly.newPlot("parametric-plot", [trace3], layout2, {responsive: true, displayModeBar: false});
 
 function updateParametricPlot(x,v) {
         Plotly.extendTraces("parametric-plot", {x: [[x]], y: [[v]]}, [0], nt);
 }
 
+// for "average-plot"
+var trace4 = {
+  x: [],
+  y: [],
+  mode: 'lines+markers',
+  type: 'scatter',
+  name: '<x>',
+  line: {color: '#6accbc'}
+};
+var trace5 = {
+  x: [],
+  y: [],
+  mode: 'lines+markers',
+  type: 'scatter',
+  name: '<v>',
+  line: {color: '#ff9933'}
+};
+var layout3 = {
+xaxis: {
+  title: {
+    text: 'time'
+  },
+},
+yaxis: {
+  title: { text: ''},
+  autorange: true
+},
+  margin: {t: 15, r:5, l: 50, b:50},
+  legend: {x:0, y:1.2, "orientation": "h"}
+}
+
+// for "average2-plot"
+var trace6 = {
+  x: [],
+  y: [],
+  mode: 'lines+markers',
+  type: 'scatter',
+  name: '<(x-<x>)^2>',
+  line: {color: '#6accbc'}
+};
+var trace7 = {
+  x: [],
+  y: [],
+  mode: 'lines+markers',
+  type: 'scatter',
+  name: '<(v-<v>)^2>',
+  line: {color: '#ff9933'}
+};
+var layout4 = {
+xaxis: {
+  title: {
+    text: 'time'
+  },
+},
+yaxis: {
+  title: { text: ''},
+  autorange: true
+},
+  margin: {t: 15, r:5, l: 50, b:50},
+  legend: {x:0, y:1.2, "orientation": "h"}
+}
