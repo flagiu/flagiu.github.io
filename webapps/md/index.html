@@ -32,7 +32,7 @@
       </div>
       <button type="button" onclick="system.init_random()">Restart RANDOM</button>
       <button type="button" onclick="system.init_square()">Restart from SQUARE</button>
-      <button type="button" onclick="system.init_hex()">Restart from HEX (DISABLED)</button>
+      <button type="button" onclick="system.init_hex()">Restart from HEX</button>
       <button type="button" onclick="system.init_maxboltz(T)">Draw velocities from Maxwell-Boltzmann</button>
       <label for="integrator">Integrator:</label>
       <select id="integrator" onclick="system.set_integrator(this.value)">
@@ -67,6 +67,7 @@
     </div>
     <div id="comments">
       <p> Inspired by <a href="https://www.softmatterdemos.org">Soft Matter Demos</a>.</p>
+      <p> Note: if "Restart from RANDOM" fails for a particle, the latter is colored in blue.</p>
       <p> Ricontrolla: energia totale non conservata.</p>
       <p> IDEAS: add time integrator in NVT and NPT; add S(qx,qy) heatmap; ricontrolla S(q).</p>
     </div>

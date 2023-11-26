@@ -19,6 +19,11 @@ class Particle {
         return ( d2 < thresh*thresh );
     }
 
+    get_momentum() {
+        this.momentum = this.vel.mult_scalar( this.mass );
+        return this.momentum;
+    }
+
     update(T,P,L,integrator) {
         if(integrator=="Euler") {
             this.vel.add_inplace( this.force.mult_scalar( dt/this.mass ) );
@@ -75,6 +80,8 @@ class System {
         this.ene_pot = 0.0; // per particle
         this.virial = 0.0;
         this.integrator = "None";
+        this.target_com_pos = new Vector(0.0,0.0);
+        this.target_com_vel = new Vector(0.0,0.0);
         
         this.initRanFrac = 0.9; // allows putting two particles within 0.9 of their hard sphere distance, when initializing random
         this.startedRDF = false;
@@ -103,51 +110,73 @@ class System {
                 count++;
             } while( overlap && count<maxcount );
             if(count>=maxcount) {
-                console.log('WARNING: random initialization falied for particle',i);
+                console.log('WARNING: random initialization failed for particle',i);
                 this.ps[i].color = 'blue';
             }
         }
     }
     
-    init_xtal(n, ax,ay, bx,by) { // positions in [-L/2, L/2)
+    init_square() {
+        let N = this.N;
+        let Nx = Math.round(Math.sqrt(N * this.L.x/this.L.y));
+        let Ny = Math.round(N/Nx);
+        console.log(Nx,Ny);
+        let a = this.L.x / Nx;
+        let b = this.L.y / Ny;
         var x,y;
-        let nh=Math.floor(n/2);
-        for (let i=0; i<n; i++)
+        let Nx2 = Math.floor(Nx/2);
+        let Ny2 = Math.floor(Ny/2);
+        for (let i=0; i<Nx; i++)
         {
-            for (let j=0; j<n; j++)
+            for (let j=0; j<Ny; j++)
             {
-                x = (i-nh+0.5)*ax + (j-nh+0.5)*bx;
-                y = (j-nh+0.5)*ay + (j-nh+0.5)*by;
-                this.ps[i*n + j] = new Particle(1, 1.0, 1.0, x,y, 0.0, 0.0);
+                x = (i-Nx2+0.5)*a;
+                y = (j-Ny2+0.5)*b;
+                this.ps[i*Ny + j] = new Particle(1, 1.0, 1.0, x,y, 0.0, 0.0);
             }
         }
     }
-    init_square() {
-        let n = Math.floor(Math.sqrt(N));
-        if( n*n != N ) console.log("Error: N not adeguate for square lattice");
-        let ax = this.L.x / n;
-        let ay = 0.0;
-        let bx = 0.0;
-        let by = this.L.y / n;
-        this.init_xtal(n, ax,ay, bx,by);
-    }
     init_hex() {
+        var x,y;
+        let N = this.N;
+        let Nx = Math.round(Math.sqrt(N *Math.sqrt(3)/2 * this.L.x/this.L.y));
+        let Ny = Math.round( N/Nx );
+        console.log(Nx,Ny);
+        let a = this.L.x / Nx;
+        let b = this.L.y / Ny;
+        let Nx2 = Math.floor(Nx/2);
+        let Ny2 = Math.floor(Ny/2);
+        for (let i=0; i<Nx; i++)
+        {
+            for (let j=0; j<Ny; j++)
+            {
+                if((j%2)==0) {
+                    x = (i-Nx2+0.5)*a;
+                    y = (j-Ny2)*b;
+                } else {
+                    x = (i-Nx2+0.5+0.5)*a;
+                    y = (j-Ny2)*b;
+                }
+                this.ps[i*Ny + j] = new Particle(1, 1.0, 1.0, x,y, 0.0, 0.0);
+            }
+        }
     }
     
     init_maxboltz(T) {
         // remember to divide by the mass!
         let sqrtT = Math.sqrt(T);
-        let velCM = new Vector(0.0,0.0);
+        this.tot_mass = 0.0;
+        this.com_vel = new Vector(0.0,0.0);
         for( let i=0; i<this.N; i++ )
         {
             this.ps[i].vel = Gaussian2D( 0.0, sqrtT/this.ps[i].mass );
-            velCM.add_inplace(this.ps[i].vel.mult_scalar(1/this.N));
+            this.com_vel.add_inplace(this.ps[i].vel.mult_scalar( this.ps[i].mass ));
+            this.tot_mass += this.ps[i].mass;
         }
+        this.com_vel.mult_scalar_inplace( 1.0/this.tot_mass);
         // remove the average
-        for( let i=0; i<this.N; i++ )
-        {
-            this.ps[i].vel.sub(velCM);
-        }
+        for( let i=0; i<this.N; i++ ) this.ps[i].vel.sub_inplace(this.com_vel);
+        return;
     }
     //---------- end of construction -------------------//
     
@@ -207,6 +236,30 @@ class System {
         }
         return this.virial;
     }
+    CenterOfMass(remove_pos, remove_vel) {
+        this.tot_mass = 0.0;
+        this.com_pos = new Vector(0.0,0.0);
+        this.com_vel = new Vector(0.0,0.0);
+        for( let i=0; i<this.N; i++ ) {
+            this.tot_mass += this.ps[i].mass;
+            this.com_pos.add_inplace( this.ps[i].pos.mult_scalar( this.ps[i].mass ) );
+            this.com_vel.add_inplace( this.ps[i].vel.mult_scalar( this.ps[i].mass ) );
+        }
+        this.com_pos.mult_scalar_inplace( 1.0/this.tot_mass);
+        this.com_vel.mult_scalar_inplace( 1.0/this.tot_mass);
+        let delta_com_pos = this.com_pos.sub(this.target_com_pos);
+        let delta_com_vel = this.com_vel.sub(this.target_com_vel);
+        if(remove_pos || remove_vel) {
+            for( let i=0; i<this.N; i++ ) {
+                if(remove_pos) {
+                    this.ps[i].pos.sub_inplace( delta_com_pos );
+                    this.ps[i].pos.mic_inplace(this.L);
+                }
+                if(remove_vel) this.ps[i].vel.sub_inplace( delta_com_vel );
+            }
+        }
+        return;
+    }
     
     expand(L) {
     	this.L.x = L;
@@ -246,6 +299,7 @@ class System {
             this.calc_all_forces();
             for(i=0;i<N;i++) { this.ps[i].update(T,P,L, "Verlet part 2"); }
         }
+        this.CenterOfMass(false,false);
     }
     
     show(c, w, h) {

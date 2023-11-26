@@ -5,7 +5,7 @@ var system;
 var canvas;
 var c;
 
-var N = 36; // max 324 with initRanFrac=0.9
+var N = 42; //36; // max 324 with initRanFrac=0.9
 var L = 7.0; // box side (units of sigma)
 var T = 0.5; // temperature (units of eps/kB)
 var P = 0.0; // pressure (units of eps/sigma^3)
@@ -28,7 +28,9 @@ function setup() {
     canvas.height = h;
     canvas.focus();
     system = new System(N,L,pi);
-    system.init_square();
+    //system.init_square();
+    system.init_hex();
+    system.CenterOfMass(false,false);
     //console.log(system);
     //system.show(c, canvas.width, canvas.height);
 }
