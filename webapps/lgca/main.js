@@ -1,5 +1,5 @@
 /* must be included after plotly-setup.js and ../lib.js */
-const w = 256; //image width coincides with maximum L
+const w = 512; //image width coincides with maximum L
 const h = w;
 var L = 128;
 var rho = 0.4;
@@ -10,7 +10,9 @@ var colors;
 function setup() {
     document.getElementById("N_slider").value = rho; //set correct slider position
     document.getElementById("L_slider").value = L;
-    canvas = createCanvas(w,h);
+    setAttributes('willReadFrequently', true);
+    canvas = createCanvas(w,h)
+    //console.log(this.canvas.drawingContext.getContextAttributes()); // https://stackoverflow.com/questions/75489567/how-to-set-canvas-attributes-from-p5-js
     canvas.parent('sketch-holder');
     background(51);
 

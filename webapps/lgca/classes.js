@@ -19,22 +19,24 @@ class LGCA {
 		//   how many particles are here? 0,1,2,3,4
 		this.c = createEmptyArray(this.V);
 
-		
-
-		this.init_random = function () {
+		this.zero_dens_vel = function() {
 			let L = this.L;
 			let d = this.d;
-
-			// start with empty density
-			this.N = 0;
 			for (let i = 0; i < L; i++) {
 				for (let j = 0; j < L; j++) {
 					this.c[i * L + j] = 0;
 					for (let k = 0; k < d; k++) this.vel[i * L + j][k] = 0;
 				}
 			}
+		}
 
+		this.init_random = function () {
+			// start with empty density and velocity
+			this.zero_dens_vel();
 			// fill randomly
+			let L = this.L;
+			let d = this.d;
+			this.N = 0;
 			for (let i = 0; i < L; i++) {
 				for (let j = 0; j < L; j++) {
 					for (let k = 0; k < d; k++) {
@@ -46,25 +48,18 @@ class LGCA {
 					}
 				}
 			}
-			console.log("N:", this.N, " Real Density:", this.N / this.V);
+			console.log("N:", this.N, " Real Density:", this.N / (this.d*this.V));
 		};
 		this.init_random();
 		//************************************ end of construction
+
 		this.init_cube = function () {
-			// start with empty density
+			// start with empty density and velocity
+			this.zero_dens_vel();
+			// fill central cube
 			let L = this.L;
 			let d = this.d;
 			let dL = int(L*Math.sqrt(this.rho)); //25;
-
-			// start with empty density and velocity
-			for (let i = 0; i < L; i++) {
-				for (let j = 0; j < L; j++) {
-					this.c[i * L + j] = 0;
-					for (let k = 0; k < d; k++) this.vel[i * L + j][k] = 0;
-				}
-			}
-
-			// fill central cube
 			this.N=0;
 			for (let i = int(L*0.5 - dL*0.5); i < int(L*0.5 + dL*0.5); i++) {
 				for (let j = int(L*0.5 - dL*0.5); j < int(L*0.5 + dL*0.5); j++) {
@@ -75,7 +70,29 @@ class LGCA {
 					}
 				}
 			}
-			console.log("N:", this.N, " Real Density:", this.N / this.V);
+			console.log("N:", this.N, " Real Density:", this.N / (this.d*this.V));
+		};
+
+		this.init_sphere = function () {
+			// start with empty density and velocity
+			this.zero_dens_vel();
+			// fill central sphere (circle)
+			let L = this.L;
+			let d = this.d;
+			let L2 = L/2.0;
+			let radius = int(L*Math.sqrt(this.rho / Math.PI)); //25;
+			this.N=0;
+			for (let i = 0; i < L; i++) {
+				for (let j = 0; j < L; j++) {
+					if( (i-L2)*(i-L2) + (j-L2)*(j-L2) > radius*radius ) continue;
+					for (let k = 0; k < d; k++) {
+						this.vel[i * L + j][k] = 1;
+						this.c[i * L + j] += 1;
+						this.N+=1;
+					}
+				}
+			}
+			console.log("N:", this.N, " Real Density:", this.N / (this.d*this.V));
 		};
 
 		this.detect_single_collision = function (i, j) {
