@@ -141,7 +141,7 @@ class System {
         let N = this.N;
         let Nx = Math.round(Math.sqrt(N *Math.sqrt(3)/2 * this.L.x/this.L.y));
         let Ny = Math.round( N/Nx );
-        console.log(Nx,Ny);
+        //console.log(Nx,Ny);
         let a = this.L.x / Nx;
         let b = this.L.y / Ny;
         let Nx2 = Math.floor(Nx/2);

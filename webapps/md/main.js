@@ -14,6 +14,8 @@ let nbins_rdf = 100;
 let npoints_sq = 50;
 let ndt_analyze = 1000;
 let ndt_every_frame = 100;
+let num_pinnedRDF = 0;
+let num_pinnedSq = 0;
 
 function setup() {
     document.getElementById("T_number").value = T; //set correct slider position
@@ -89,6 +91,19 @@ function changeL(value) {
     if(L>system.L.x)
     {
         system.expand(L);
+    }
+}
+
+function pin_RDF() {
+    if(system.startedRDF) {
+        num_pinnedRDF+=1;
+        pinRDF(system.rdf, system.L, "pinned"+num_pinnedRDF);
+    }
+}
+function pin_Sq() {
+    if(system.startedSq) {
+        num_pinnedSq+=1;
+        pinSq(system.sq, system.L, "pinned"+num_pinnedSq);
     }
 }
 

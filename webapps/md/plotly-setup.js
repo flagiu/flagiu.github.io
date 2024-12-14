@@ -164,7 +164,31 @@ function plotRDF(rdf, L) {
     let r = new Float32Array(rdf.length);
     let binsize = (0.5*L.min())/(rdf.length - 1);
     for (let i=0;i<rdf.length;i++) r[i] = (i+0.5)*binsize;
-    Plotly.update("rdf-plot", {x: r, y: rdf});
+    // update only the first plot (current g(r))
+    Plotly.update("rdf-plot", {x: r, y: rdf}, {}, 0);
+}
+
+function pinRDF(rdf, L, label) {
+    let r = new Float32Array(rdf.length);
+    let binsize = (0.5*L.min())/(rdf.length - 1);
+    for (let i=0;i<rdf.length;i++) r[i] = (i+0.5)*binsize;
+    trace = {
+        x: r,
+        y: Float32Array.from(rdf),
+        mode: 'lines',
+        type: 'scatter',
+        name: label,
+        line: {color: getRandomColor()}
+    }
+    Plotly.addTraces("rdf-plot", trace);
+}
+
+function unpinRDF() {
+    var graphDiv = document.getElementById("rdf-plot") 
+    num_traces = graphDiv.data.length
+    // 1st traces is not pinnes; the rest is pinned
+    pinnedIdx = Array.from({length: num_traces-1}, (_, i) => i + 1)
+    Plotly.deleteTraces(graphDiv, pinnedIdx);
 }
 
 //---------------------- S(q) -------------------------------------------------------//
@@ -195,5 +219,29 @@ function plotSq(sq, L) {
     let q = new Float32Array(sq.length);
     let dq = 2*3.141592/L.max();
     for (let i=0;i<sq.length;i++) q[i] = (i+0.5)*dq;
-    Plotly.update("sq-plot", {x: q, y: sq});
+    // update only the first plot (current S(q))
+    Plotly.update("sq-plot", {x: q, y: sq}, {}, 0);
+}
+
+function pinSq(sq, L, label) {
+    let q = new Float32Array(sq.length);
+    let dq = 2*3.141592/L.max();
+    for (let i=0;i<sq.length;i++) q[i] = (i+0.5)*dq;
+    trace = {
+        x: q,
+        y: Float32Array.from(sq),
+        mode: 'lines',
+        type: 'scatter',
+        name: label,
+        line: {color: getRandomColor()}
+    }
+    Plotly.addTraces("sq-plot", trace);
+}
+
+function unpinSq() {
+    var graphDiv = document.getElementById("sq-plot") 
+    num_traces = graphDiv.data.length
+    // 1st traces is not pinnes; the rest is pinned
+    pinnedIdx = Array.from({length: num_traces-1}, (_, i) => i + 1)
+    Plotly.deleteTraces(graphDiv, pinnedIdx);
 }

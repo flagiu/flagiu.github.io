@@ -49,12 +49,16 @@
       </div>
       <button type="button" onclick="system.start_RDF(nbins_rdf);">(Re)start g(r) computation</button>
       <button type="button" onclick="system.startedRDF=false;">Stop g(r) computation</button>
+      <button type="button" onclick="pin_RDF();">Pin current g(r) plot</button>
+      <button type="button" onclick="unpinRDF(); num_pinnedRDF=0;">Unpin all g(r) plots</button>
       <div class="control">
         <label for="sq_npoints_number">max. wavenumber</label>
         <input type="number" id="sq_npoints_number" min="10", max="200", step="10" oninput="changeSq(this.value)"></input>
       </div>
       <button type="button" onclick="system.InitStructureFactor(npoints_sq);">(Re)start S(q) computation</button>
       <button type="button" onclick="system.startedSq=false;">Stop S(q) computation</button>
+      <button type="button" onclick="pin_Sq();">Pin current S(q)) plot</button>
+      <button type="button" onclick="unpinSq(); num_pinnedSq=0;">Unpin all S(q) plots</button>
     </div>
     
     <canvas id="sketch-holder" style="border:2px solid"></canvas>
