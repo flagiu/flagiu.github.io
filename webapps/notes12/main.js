@@ -1,41 +1,44 @@
 /* must be included after plotly-setup.js and ../lib.js */
 
-const R = 64;
-const w = 2*R; //image width coincides with maximum R * 2
+const R = 128;
+const r = 5;
+const w = 2.5*R; //image width coincides with maximum R * 2
 const h = w;
-const startingFreq = 220; // Hertz
-const ratio = 2./3.;
+const f0 = 440; // Hertz
+const q = 3.; //Math.pow(2,1./12.);
 var sys;
 var canvas;
-var colors;
+var c;
+// create web audio api context
+var audioCtx;
 
 function setup() {
-    //setAttributes('willReadFrequently', true);
-    canvas = createCanvas(w,h)
-    canvas.parent('sketch-holder');
+    canvas = document.getElementById("sketch-holder");
+    c = canvas.getContext("2d");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.focus();
     background(51);
+    //window = = browser.windows.getCurrent();
 
-    img = createImage(w,h);
-    sys = new Notes(ratio, R, Nnotes);
-    sys.show();
+    sys = new Notes(f0, q);
+    sys.show(c, canvas.width, canvas.height, R, r);
 }
 
 function draw() {
-    background("white");
-    sys.update();
-    sys.show();
+    //background("white");
 }
 
 /* Interactive functions */
 
 function changeN(value) {
-    rho = parseFloat(value);
-    document.getElementById("N_label").innerHTML = rho;
-    sys = new LGCA(L, rho, img);
+    let N = parseFloat(value);
+    document.getElementById("N_label").innerHTML = N;
+    sys.generate_notes(N);
+    sys.show(c, canvas.width, canvas.height, R, r);
 }
 
-function changeL(value) {
-    L = parseFloat(value);
-    document.getElementById("L_label").innerHTML = L;
-    sys = new LGCA(L, rho, img);
+function playNotes() {
+    audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+    sys.play(audioCtx);
 }
