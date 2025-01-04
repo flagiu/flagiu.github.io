@@ -87,42 +87,37 @@ function getRandomColor() {
   return color;
 }
 
-function playNote(audioCtx, frequency, duration) {
-  // create Oscillator node
-  var oscillator = audioCtx.createOscillator();
-
-  oscillator.type = 'square';
-  oscillator.frequency.value = frequency; // value in hertz
-  oscillator.connect(audioCtx.destination);
-  oscillator.start();
-
-  //sleep(duration);
-  //oscillator.stop();
-  setTimeout(
-    function() {
-      oscillator.stop();
-    }, duration);
-}
-
-// Create an audio context
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
 // Function to play a sine wave
 function playSineWave(audioCtx, frequency, duration) {
+  // frequency: Hertz; duration: seconds
   return new Promise((resolve) => {
     // Create an oscillator node
     const oscillator = audioCtx.createOscillator();
+
+    // Create a gain node
+    var gainNode = audioCtx.createGain();
+    const fading_time = 0.015; // seconds
+    const num_time_constants = 3;
+
     // Set the oscillator type to 'sine'
     oscillator.type = 'sine';
     // Set the frequency
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
 
     // Connect the oscillator to the audio context's destination (the speakers)
     oscillator.connect(audioCtx.destination);
+    gainNode.connect(audioCtx.destination)
+    oscillator.connect(gainNode);
 
-    // Start the oscillator
+    // Start the oscillator and fade in
+    gainNode.gain.value = 0;
     oscillator.start();
-    // Stop the oscillator after the specified duration
+    gainNode.gain.setTargetAtTime(0.5, audioCtx.currentTime, fading_time);
+
+    // fade out and stop the oscillator after the specified duration
+    const fadingStartTime = audioCtx.currentTime + duration - num_time_constants*fading_time;
+    gainNode.gain.setTargetAtTime(0, fadingStartTime, fading_time);
+
     oscillator.stop(audioCtx.currentTime + duration);
 
     // Resolve the promise when the oscillator stops

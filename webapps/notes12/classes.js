@@ -37,7 +37,7 @@ class Notes {
 		}
 
 		this.play = async function(audioCtx) {
-			let duration = 0.5;
+			const duration = 0.5; // seconds
 			for(let i=0; i<this.freq.length; i++) {
 				await playSineWave(audioCtx, this.freq[i], duration);
 			}

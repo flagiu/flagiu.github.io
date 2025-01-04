@@ -4,8 +4,9 @@ const R = 128;
 const r = 5;
 const w = 2.5*R; //image width coincides with maximum R * 2
 const h = w;
-const f0 = 440; // Hertz
-const q = 3.; //Math.pow(2,1./12.);
+var f0 = 440; // Hertz
+var q = 3.; //Math.pow(2,1./12.);
+var N = 1;
 var sys;
 var canvas;
 var c;
@@ -13,6 +14,8 @@ var c;
 var audioCtx;
 
 function setup() {
+    document.getElementById("q_number").value = q; //set correct slider position
+    document.getElementById("N_slider").value = N; //set correct slider position
     canvas = document.getElementById("sketch-holder");
     c = canvas.getContext("2d");
     canvas.width = w;
@@ -30,15 +33,21 @@ function draw() {
 }
 
 /* Interactive functions */
+function change_q(value) {
+    q = parseFloat(value);
+    sys.q = q;
+    sys.generate_notes(N);
+    sys.show(c, canvas.width, canvas.height, R, r);
+}
 
 function changeN(value) {
-    let N = parseFloat(value);
+    N = parseFloat(value);
     document.getElementById("N_label").innerHTML = N;
     sys.generate_notes(N);
     sys.show(c, canvas.width, canvas.height, R, r);
 }
 
 function playNotes() {
-    audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+    audioCtx = new AudioContext();//new(window.AudioContext || window.webkitAudioContext)();
     sys.play(audioCtx);
 }
