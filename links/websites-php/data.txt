@@ -1,0 +1,4 @@
+Laptop|Powerful business laptop|Electronics,Computers
+Phone|Android smartphone|Electronics,Mobile
+Desk Chair|Ergonomic office chair|Furniture,Office
+Coffee Table|Wooden living room table|Furniture,Living Room

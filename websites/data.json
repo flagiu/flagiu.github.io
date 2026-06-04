@@ -1,0 +1,37 @@
+[
+  {
+    "name": "meshy.ai",
+    "description": "Text to 3D model",
+    "tags": ["Generative AI", "3D modeling", "Text prompt"]
+  },
+  {
+    "name": "lumalabs.ai",
+    "description": "Text to video",
+    "tags": ["Generative AI", "Video", "Text prompt"]
+  },
+  {
+    "name": "lostgamer.io",
+    "description": "A geo-guesser game from videogames",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "uiball.com",
+    "description": "Download stylysh loaders",
+    "tags": ["Website"]
+  },
+  {
+    "name": "logodiffusion.com",
+    "description": "Transform a sketch into a logo",
+    "tags": ["Generative AI", "Image prompt", "Image"]
+  },
+  {
+    "name": "zty.pe",
+    "description": "A game of fast typing",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "chefgpt.xyz",
+    "description": "Generate a recipe from ingredients and tools",
+    "tags": ["Generative AI", "Food", "Text prompt"]
+  }
+]

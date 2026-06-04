@@ -954,3 +954,47 @@ section {
     padding-right: 20px 15px;
   }
 }
+
+/*------------------------------------------------------------
+# Websites
+------------------------------------------------------------*/
+.websites-filter {
+    margin-bottom: 25px;
+}
+
+.websites-select {
+    padding: 8px;
+    font-size: 16px;
+}
+
+.websites-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.websites-item h3 {
+    margin-top: 0;
+}
+
+.websites-tags {
+    margin-top: 10px;
+}
+
+.websites-tag {
+    display: inline-block;
+    background: #0078d7;
+    color: white;
+    padding: 4px 8px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.websites .websites-count {
+    color: #666;
+    margin-bottom: 15px;
+}
