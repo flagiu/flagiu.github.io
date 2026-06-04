@@ -33,5 +33,10 @@
     "name": "chefgpt.xyz",
     "description": "Generate a recipe from ingredients and tools",
     "tags": ["Generative AI", "Food", "Text prompt"]
+  },
+  {
+    "name": "sketch.metademolab.com",
+    "description": "Animate a hand drawing",
+    "tags": ["Generative AI", "Image prompt", "Animation"]
   }
 ]
