@@ -9,7 +9,10 @@ async function loadData() {
         renderItems();
     } catch (error) {
         document.getElementById('itemsContainer').innerHTML =
-            '<p>Failed to load ./data.json</p>';
+            '<p>Failed to load ./data.json'+
+            '</br>If you are working locally, remember to'+
+            '</br>run a server with: python3 -m http.server 8000'+
+            '</br>and visit: http://localhost:8000/path-to-.html</p>';
         console.error(error);
     }
 }
