@@ -38,5 +38,112 @@
     "name": "sketch.metademolab.com",
     "description": "Animate a hand drawing",
     "tags": ["Generative AI", "Image prompt", "Animation"]
+  },
+  {
+    "name": "fotoforensics.org",
+    "description": "Forensic analysis of pictures",
+    "tags": ["Image", "AI detection"]
+  },
+  {
+    "name": "scanner.deepware.ai",
+    "description": "Spot AI-generated voices and video",
+    "tags": ["Video", "Audio", "AI detection"]
+  },
+  {
+    "name": "critterz.tv",
+    "description": "The first AI-generated short animation",
+    "tags": ["Video", "Generative AI"]
+  },
+  {
+    "name": "slowroads.io",
+    "description": "Endless driving simulation",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "gamma.app",
+    "description": "Generate presentations, websites and more",
+    "tags": ["Generative AI", "Presentation", "Website"]
+  },
+  {
+    "name": "whitescreen.online",
+    "description": "Fake and monochromo screens",
+    "tags": ["Image"]
+  },
+  {
+    "name": "tinywow.com",
+    "description": "Many useful tools",
+    "tags": ["Tools"]
+  },
+  {
+    "name": "radio.garden",
+    "description": "Radio stations around the world",
+    "tags": ["Audio"]
+  },
+  {
+    "name": "seostudio.tools",
+    "description": "Many useful tools",
+    "tags": ["Tools"]
+  },
+  {
+    "name": "classicgamezone.com",
+    "description": "Play retro games",
+    "tags": ["Game", "Retro"]
+  },
+  {
+    "name": "mapcn.dev",
+    "description": "Customizable maps for websites designed with ui.shadcn.com",
+    "tags": ["Maps", "Website", "Design"]
+  },
+  {
+    "name": "cpreid2.github.io/blobSketch",
+    "description": "Draw funny sketches",
+    "tags": ["Image"]
+  },
+  {
+    "name": "svglogos.dev",
+    "description": "Find almost any logos in SVG format",
+    "tags": ["Image", "Design"]
+  },
+  {
+    "name": "stereodrift.github.io",
+    "description": "Generate visuals based on beats",
+    "tags": ["Video", "Audio", "Design"]
+  },
+  {
+    "name": "arnismc.com",
+    "description": "Transform any location on Earth into a playable Minecraft world",
+    "tags": ["Maps", "Game"]
+  },
+  {
+    "name": "origami.me",
+    "description": "Origami tutorials",
+    "tags": ["Tutorial"]
+  },
+  {
+    "name": "swishy.ai",
+    "description": "Create animations",
+    "tags": ["Generative AI", "Animation"]
+  },
+  {
+    "name": "pointerpointer.com",
+    "description": "Find your pointer",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "loot-drop.io",
+    "description": "The Startup Graveyard",
+    "tags": ["Startup"]
+  },
+  {
+    "name": "instructables.com",
+    "description": "Explore, document, and share your creations",
+    "tags": ["Tutorial"]
+  },
+  {
+    "name": "ai.meta.com/research/samaudio",
+    "description": "Isolate the target sound",
+    "tags": ["Audio"]
   }
 ]
+
+
