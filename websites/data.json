@@ -143,6 +143,31 @@
     "name": "ai.meta.com/research/samaudio",
     "description": "Isolate the target sound",
     "tags": ["Audio"]
+  },
+  {
+    "name": "noclip.website",
+    "description": "Explore maps from different games",
+    "tags": ["Game", "Maps"]
+  },
+  {
+    "name": "papertoilet.com",
+    "description": "Just a paper toilet",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "tooooools.app",
+    "description": "Free minimalist and lo-fi effects for image and video processing online",
+    "tags": ["Image", "Video"]
+  },
+  {
+    "name": "education.minecraft.net",
+    "description": "Education with Minecraft",
+    "tags": ["Game", "Education"]
+  },
+  {
+    "name": "napkin.ai",
+    "description": "Create visuals from text",
+    "tags": ["Text prompt", "Design"]
   }
 ]
 
