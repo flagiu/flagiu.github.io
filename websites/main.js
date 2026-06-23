@@ -1,12 +1,23 @@
 let allItems = [];
 
+// Source - https://stackoverflow.com/a/12646864
+// Posted by Laurens Holst, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-06-23, License - CC BY-SA 4.0
+function shuffleItemsAndRender() {
+    for (let i = allItems.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
+    }
+    renderItems();
+}
+
 async function loadData() {
     try {
         const response = await fetch('./data.json');
         allItems = await response.json();
 
         populateCategories();
-        renderItems();
+        shuffleItemsAndRender();
     } catch (error) {
         document.getElementById('itemsContainer').innerHTML =
             '<p>Failed to load ./data.json'+
@@ -76,8 +87,13 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Interaction with selections and buttons
 document
     .getElementById('categoryFilter')
     .addEventListener('change', renderItems);
+
+document
+    .getElementById("shuffleButton")
+    .onclick = shuffleItemsAndRender;
 
 loadData();

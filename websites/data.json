@@ -168,7 +168,110 @@
     "name": "napkin.ai",
     "description": "Create visuals from text",
     "tags": ["Text prompt", "Design"]
+  },  
+  {
+    "name": "elevenlabs.io",
+    "description": "AI text-to-speech, speech-to-text, music, sound effects ...",
+    "tags": ["Generative AI", "Audio", "Text prompt", "Audio prompt"]
+  },  
+  {
+    "name": "skywork.ai",
+    "description": "\"The Originator of AI Workspace\": documents, images, slides, websites, ...",
+    "tags": ["Workspace", "Website", "Presentation", "Image"]
+  },
+  {
+    "name": "topoexport.com",
+    "description": "Export 2D and 3D maps",
+    "tags": ["Maps"]
+  },
+  {
+    "name": "transparenttextures.com",
+    "description": "Find textured patterns",
+    "tags": ["Design", "Image"]
+  },
+  {
+    "name": "github.com/ossu",
+    "description": "Open Science Society University: free resources for college curricula",
+    "tags": ["Education"]
+  },
+  {
+    "name": "latentbox.com",
+    "description": "A resource site for many softwares",
+    "tags": ["Tutorial"]
+  },
+  {
+    "name": "drawastickman.com",
+    "description": "Draw your adventure in the game",
+    "tags": ["Game", "Animation"]
+  },
+  {
+    "name": "texturelabs.org",
+    "description": "Find textured patterns",
+    "tags": ["Design", "Image"]
+  },
+  {
+    "name": "adultswim.com/etcetera",
+    "description": "Rick and Morty mini-apps",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "adultswim.com/etcetera",
+    "description": "Rick and Morty mini-apps",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "chrismckenzie.com",
+    "description": "A happy cube",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "appalchemy.ai",
+    "description": "Create apps in seconds",
+    "tags": ["Design", "App"]
+  },
+  {
+    "name": "absurd.website",
+    "description": "Absurd apps, every month",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "busysimulator.com",
+    "description": "Fake notification sounds",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "rotatingsandwiches.com",
+    "description": "Rotating sandwiches",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "ambient-mixer.com",
+    "description": "Ambient sounds from movies and more",
+    "tags": ["Audio"]
+  },
+  {
+    "name": "oreo.ddiu.io",
+    "description": "Create any O-re-o you want",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "lacquerlacquer.com",
+    "description": "Paint your nails",
+    "tags": ["Boredom"]
+  },
+  {
+    "name": "science.nasa.gov/specials/your-name-in-landsat",
+    "description": "Your name in Earth images",
+    "tags": ["Design", "Image"]
+  },
+  {
+    "name": "classcentral.com",
+    "description": "Online courses",
+    "tags": ["Education"]
+  },
+  {
+    "name": "emergent.sh",
+    "description": "Build web & mobile apps",
+    "tags": ["Design", "App"]
   }
 ]
-
-
