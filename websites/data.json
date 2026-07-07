@@ -273,5 +273,10 @@
     "name": "emergent.sh",
     "description": "Build web & mobile apps",
     "tags": ["Design", "App"]
+  },
+  {
+    "name": "thomasgnuttall.github.io/KarnatakGestureVocalCostructuring",
+    "description": "The Co-structuring of Gesture-Vocal Dynamics: An Exploration in Karnatak Music Performance",
+    "tags": ["Science"]
   }
 ]
