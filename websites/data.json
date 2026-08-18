@@ -278,5 +278,20 @@
     "name": "thomasgnuttall.github.io/KarnatakGestureVocalCostructuring",
     "description": "The Co-structuring of Gesture-Vocal Dynamics: An Exploration in Karnatak Music Performance",
     "tags": ["Science"]
+  },
+  {
+    "name": "morguefile.com",
+    "description": "Royalty Free Stock Photos and Images",
+    "tags": ["Image"]
+  },
+  {
+    "name": "europeana.eu",
+    "description": "Search, save and share art, books, films and music from Europe's digital cultural heritage",
+    "tags": ["Image", "Audio", "Video", "Culture"]
+  },
+  {
+    "name": "photopea.com",
+    "description": "Free online photo editor, working locally",
+    "tags": ["Image", "Tools"]
   }
 ]
