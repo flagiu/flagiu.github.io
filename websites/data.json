@@ -293,5 +293,10 @@
     "name": "photopea.com",
     "description": "Free online photo editor, working locally",
     "tags": ["Image", "Tools"]
+  },
+  {
+    "name": "climateinteractive.org",
+    "description": "Simulate the effect of climate policies",
+    "tags": ["Education", "Science"]
   }
 ]

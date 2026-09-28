@@ -1,0 +1,111 @@
+
+/*--------------------------------------------------------------
+# General
+--------------------------------------------------------------*/
+body {
+  font-family: "Open Sans", sans-serif;
+  color: #272829;
+}
+
+a {
+  color: #149ddd;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #37b3ed;
+  text-decoration: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Raleway", sans-serif;
+}
+
+
+/*--------------------------------------------------------------
+# Specific
+--------------------------------------------------------------*/
+
+section.form-and-plot {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    grid-gap: 5px;
+    align-items: top;
+}
+
+div.plot-container {
+    width: max-content;
+}
+
+form {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    grid-gap: 5px;
+    align-items:flex-start;
+    background-color: #ecf2fb;
+}
+
+form button, form label, form input, form div {
+  display: flex;
+  font-family: inherit;
+  font-size: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 5px;
+  height: 30px;
+}
+
+form label {
+    text-align: right;
+}
+form label:after { content: ":"; }
+
+form input[type="number"] {
+  box-shadow: inset 1px 1px 3px #cccccc;
+  border-radius: 5px;
+  width: 50%;
+}
+
+.self-center {
+    align-self: center;
+}
+
+.col-span-2 {
+    column-span: 2;
+}
+
+.justify-start {
+    justify-content: start;
+}
+
+.gap-5 {
+    gap: 5;
+}
+
+.flex {
+  display: flex;
+  align-items: center;
+}
+
+.loader {
+    content: "";
+    visibility: visible;
+    display: inline-block;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    margin: 0 10px -6px 1px;
+    border: 2px solid #149ddd;
+    border-top-color: #fff;
+    animation: spin 1s linear infinite;
+}
+.loader:after { content: " "; }
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

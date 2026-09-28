@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="../../../assets/img/favicon.png" />
+        <link rel="stylesheet" href="..//style.css" />
+        <script
+            async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"
+        ></script>
+        <script src="https://cdn.plot.ly/plotly-4.0.0.min.js"></script>
+        <title>Physics simulations</title>
+    </head>
+    <body>
+        <header>
+            <div class="header-container">
+                <h1>Double pendulum</h1>
+                <a href="../../../index.html" class="home-button"> <i class="fa-solid fa-house text-xl"></i> </a>
+                <a href="../" class="home-button"> <i class="fa-solid fa-atom text-xl"></i> </a>
+            </div>
+        </header>
+        <main>
+            <section class="prose">
+                <p>
+                    The double pendulum demonstrates chaos: 50 nearly identical
+                    pendulums start from rest, yet follow drastically different
+                    paths over time. See
+                    <a href="https://en.wikipedia.org/wiki/Double_pendulum">Wikipedia</a>
+                    for details.
+                </p>
+                <p>
+                    The simulation can be customized by adjusting the point
+                    masses, lengths of the (weightless) rods and the initial
+                    angle.
+                </p>
+            </section>
+            <section class="form-and-plot">
+                <form id="dataForm" class="form">
+                    <label for="m1Input" class="self-center">Top mass</label>
+                    <input
+                        type="number"
+                        id="m1Input"
+                        name="m1"
+                        value="1"
+                        min="0.1"
+                        step="0.1"
+                    />
+
+                    <label for="m2Input" class="self-center">Bottom mass</label>
+                    <input
+                        type="number"
+                        id="m2Input"
+                        name="m2"
+                        value="1"
+                        min="0.1"
+                        step="0.1"
+                    />
+
+                    <label for="l1Input" class="self-center">Top rod length</label>
+                    <input
+                        type="number"
+                        id="l1Input"
+                        name="l1"
+                        value="1"
+                        min="0.1"
+                        step="0.1"
+                    />
+
+                    <label for="l2Input" class="self-center">Bottom rod length</label>
+                    <input
+                        type="number"
+                        id="l2Input"
+                        name="l2"
+                        value="1"
+                        min="0.1"
+                        step="0.1"
+                    />
+
+                    <label for="phiInput" class="self-center">Initial angle (in units of \(\pi\))</label>
+                    <input
+                        type="number"
+                        id="phiInput"
+                        name="phi"
+                        value="1"
+                        min="0.1"
+                        step="0.1"
+                    />
+
+                    <label for="TInput" class="self-center">Simulation time</label>
+                    <input
+                        type="number"
+                        id="TInput"
+                        name="T"
+                        value="10"
+                        min="1"
+                        step="1"
+                    />
+
+                    <div class="col-span-2 flex justify-start gap-5">
+                        <button type="submit">Calculate</button>
+                        <button type="button" id="resetButton">Reset</button>
+                    </div>
+
+                    <div id="loader" class="loader-container flex">
+                        <div id="loaderSpinner" class="loader"></div>
+                        <p id="loaderText"></p>
+                    </div>
+                </form>
+
+                <div id="plot" class="plot-container"></div>
+            </section>
+        </main>
+    </body>
+
+    <footer class="pt-4">
+        <p class="text-sm text-center">Modified from: © 2025 Urban Duh</p>
+    </footer>
+
+    <script type="module">
+        async function main() {
+            const calculateButton = document.querySelector(
+                'button[type="submit"]',
+            );
+            const resetButton = document.getElementById("resetButton");
+
+            resetButton.addEventListener("click", () => {
+                // Reset form to default values
+                document.getElementById("m1Input").value = "1";
+                document.getElementById("m2Input").value = "1";
+                document.getElementById("l1Input").value = "1";
+                document.getElementById("l2Input").value = "1";
+                document.getElementById("phiInput").value = "1";
+                document.getElementById("TInput").value = "10";
+
+                // Reload the page
+                window.location.reload();
+            });
+
+            try {
+                calculateButton.disabled = true;
+                document.getElementById("loaderSpinner").style.visibility = 'visible';
+                document.getElementById("loaderText").textContent = "Loading Python... ";
+
+                // Initialize worker
+                const response = await fetch("pendulums.py");
+                const initCode = await response.text();
+
+                let worker = new Worker("../pyodide_background_worker.js");
+                let animationId;
+
+                // load python packages
+                await new Promise((resolve, reject) => {
+                    worker.onmessage = (e) => {
+                        if (e.data.type === "ready") resolve();
+                        else if (e.data.type === "error") reject(e.data.error);
+                    };
+
+                    worker.postMessage({
+                        type: "init",
+                        initCode: initCode,
+                        packages: ["numpy", "scipy"],
+                    });
+                });
+
+                const form = document.getElementById("dataForm");
+                // when the calculateButton (of type "submit") is pressed:
+                form.addEventListener("submit", async (e) => {
+                    // disable the submit button
+                    calculateButton.disabled = true;
+                    e.preventDefault(); // ?
+                    // parse the input data
+                    const m1 = parseFloat(
+                        document.getElementById("m1Input").value,
+                    );
+                    const m2 = parseFloat(
+                        document.getElementById("m2Input").value,
+                    );
+                    const l1 = parseFloat(
+                        document.getElementById("l1Input").value,
+                    );
+                    const l2 = parseFloat(
+                        document.getElementById("l2Input").value,
+                    );
+                    const phi = parseFloat(
+                        document.getElementById("phiInput").value,
+                    );
+                    const T = parseFloat(
+                        document.getElementById("TInput").value,
+                    );
+
+                    return new Promise((resolve, reject) => {
+                        worker.onmessage = function (e) {
+                            // when you receive a message from the pyodide worker:
+                            // enable the submit button
+                            calculateButton.disabled = false;
+                            // if the calculation was successful, plot the results:
+                            if (e.data.type === "result") {
+                                // this is the output data converted to JavaScript from Python
+                                const [x1, y1, x2, y2] = e.data.data;
+                                // not loading anymore: make the loader button invisible
+                                
+                                document.getElementById("loaderSpinner")
+                                    .style.visibility = 'hidden';
+                                document.getElementById("loaderText")
+                                    .textContent = "Calculation completed";
+
+                                // this is a compact way to load all the traces
+                                //   x1,y1,x2,y2 [0][idx] at time i=0, for idx=0,...,nsamples-1
+                                let traces = Array.from(x1[0]).map(
+                                    (x, idx) => ({
+                                        x: [0, x, x2[0][idx]],
+                                        y: [0, y1[0][idx], y2[0][idx]],
+                                        mode: "lines+markers",
+                                        line: { width: 1 },
+                                        marker: { size: 6 },
+                                    }),
+                                );
+                                
+                                // create the plot
+                                Plotly.newPlot(
+                                    "plot",
+                                    traces,
+                                    {
+                                        xaxis: {
+                                            scaleanchor: "y",
+                                            scaleratio: 1,
+                                            range: [
+                                                -(l1 + l2 + 0.1),
+                                                l1 + l2 + 0.1,
+                                            ],
+                                        },
+                                        yaxis: {
+                                            range: [
+                                                -(l1 + l2 + 0.1),
+                                                l1 + l2 + 0.1,
+                                            ],
+                                        },
+                                        height: 500,
+                                        showlegend: false,
+                                    },
+                                    { responsive: true },
+                                );
+                                
+                                // animate the plot, where i is time index
+                                let i = 0;
+                                function update() {
+                                    i += 1;
+                                    i %= x1.length; // time loop
+                                    
+                                    // plot all the samples at time i
+                                    let newTraces = Array.from(x1[i]).map(
+                                        (x, idx) => ({
+                                            x: [0, x, x2[i][idx]],
+                                            y: [0, y1[i][idx], y2[i][idx]],
+                                        }),
+                                    );
+
+                                    Plotly.animate(
+                                        "plot",
+                                        { data: newTraces },
+                                        {
+                                            transition: { duration: 0 },
+                                            frame: {
+                                                duration: 0,
+                                                redraw: false,
+                                            },
+                                        },
+                                    );
+
+                                    animationId = requestAnimationFrame(update);
+                                }
+
+                                if (animationId) {
+                                    cancelAnimationFrame(animationId);
+                                }
+                                animationId = requestAnimationFrame(update);
+                                resolve();
+                            } else if (e.data.type === "error") {
+                                
+                                document.getElementById("loaderSpinner")
+                                    .style.visibility = 'hidden';
+                                document
+                                    .getElementById("loaderText")
+                                    .textContent = "Error";
+                                reject(new Error(e.data.error));
+                            }
+                        };
+
+                        // while calculating, make the "loader" button visible with the message "Calculating..."
+                        
+                        document.getElementById("loaderSpinner")
+                            .style.visibility = 'visible';
+                        document.getElementById("loaderText")
+                            .textContent = "Calculating... ";
+                        // calculation message
+                        worker.postMessage({
+                            type: "calculate",
+                            code: `simulate_double_pendulum(${m1}, ${m2}, ${l1}, ${l2}, ${phi * Math.PI}, ${T})`,
+                        });
+                    });
+                });
+
+                // Initial calculation
+                await form.requestSubmit();
+            } catch (error) {
+                console.error(error);
+                document.getElementById("loaderSpinner")
+                    .style.visibility = 'hidden';
+                document.getElementById("loaderText")
+                    .textContent = "Error";
+                calculateButton.disabled = false;
+            }
+        }
+
+        main();
+    </script>
+</html>
