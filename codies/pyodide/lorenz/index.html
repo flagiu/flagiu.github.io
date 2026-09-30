@@ -16,23 +16,32 @@
         <header>
             <div class="header-container">
                 <h1>Lorenz attractor</h1>
-                <a href="../../../index.html" class="home-button"> <i class="fa-solid fa-house text-xl"></i> </a>
-                <a href="../" class="home-button"> <i class="fa-solid fa-atom text-xl"></i> </a>
+                <a href="../../../index.html" class="home-button">
+                    <i class="fa-solid fa-house text-xl"></i> </a>
+                <a href="../" class="home-button">
+                    <i class="fa-solid fa-atom text-xl"></i> </a>
             </div>
         </header>
         <main>
             <section class="prose">
                 <p>
-                    Description
+                    A famous dynamic system in 3 dimentions
+                    having a butterfly-shaped attractor.
                 </p>
                 <p>
-                    The simulation can be customized by adjusting ...
+                    The simulation can be customized by
+                    adjusting the parameters below.
+                </p>
+                <p>
+                    A static 3d plot of the whole dynamics
+                    and a 2d projection of the dynamics are shown.
                 </p>
             </section>
             <section class="form-and-plot">
-                <div>
+                <div style="grid-column: 1; grid-row: 1;">
                     <form id="dataForm" class="form">
-                        <label for="nInput" class="self-center">Number of points</label>
+                        <label for="nInput" class="self-center">
+                            Number of samples</label>
                         <input
                             type="number"
                             id="nInput"
@@ -42,7 +51,19 @@
                             step="1"
                         />
 
-                        <label for="TInput" class="self-center">Simulation time</label>
+                        <label for="dtInput" class="self-center">
+                            Sampling time</label>
+                        <input
+                            type="number"
+                            id="dtInput"
+                            name="dt"
+                            value="0.02"
+                            min="0.01"
+                            step="0.01"
+                        />
+                        
+                        <label for="TInput" class="self-center">
+                            Simulation time</label>
                         <input
                             type="number"
                             id="TInput"
@@ -64,202 +85,237 @@
                         </div>
                     </form>
                 </div>
-
-                <div id="plot" class="plot-container"></div>
+                <div id="plot2d" class="plot-container"
+                    style="grid-column: 1; grid-row: 2;"></div>
+                <div id="plot3d" class="plot-container"
+                    style="grid-column: 1; grid-row: 3;"></div>
             </section>
         </main>
     </body>
 
     <script type="module">
-        async function main() {
-            const calculateButton = document.getElementById("calculateButton");
-            const resetButton = document.getElementById("resetButton");
+async function main() {
+    const calculateButton = document.getElementById("calculateButton");
+    const resetButton = document.getElementById("resetButton");
 
-            resetButton.addEventListener("click", () => {
-                // Reset form to default values
-                document.getElementById("nInput").value = "1";
-                document.getElementById("TInput").value = "10";
+    resetButton.addEventListener("click", () => {
+        // Reset form to default values
+        document.getElementById("nInput").value = "1";
+        document.getElementById("dtInput").value = "0.02";
+        document.getElementById("TInput").value = "10";
 
-                // Reload the page
-                window.location.reload();
+        // Reload the page
+        window.location.reload();
+    });
+
+    try {
+        // Initialize worker
+        calculateButton.disabled = true;
+        document.getElementById("loaderSpinner").style.visibility = 'visible';
+        document.getElementById("loaderText").textContent = "Loading Python... ";
+
+        const response = await fetch("lorenz.py");
+        const initCode = await response.text();
+
+        let worker = new Worker("../pyodide_background_worker.js");
+        let animationId;
+
+        // load python packages
+        await new Promise((resolve, reject) => {
+            worker.onmessage = (e) => {
+                if (e.data.type === "ready") {
+                    calculateButton.disabled = false;
+                    resolve();
+                }
+                else if (e.data.type === "error") reject(e.data.error);
+            };
+
+            worker.postMessage({
+                type: "init",
+                initCode: initCode,
+                packages: ["numpy", "scipy"],
             });
+        });
+        
+        const form = document.getElementById("dataForm");
+        form.addEventListener("submit", async (e) => {
+            // disable the submit button
+            calculateButton.disabled = true;
+            e.preventDefault(); // ?
+            // parse the input data
+            const n = parseFloat(
+                document.getElementById("nInput").value,
+            );
+            const dt = parseFloat(
+                document.getElementById("dtInput").value,
+            );
+            const T = parseFloat(
+                document.getElementById("TInput").value,
+            );
 
-            try {
-                // Initialize worker
-                calculateButton.disabled = true;
-                document.getElementById("loaderSpinner").style.visibility = 'visible';
-                document.getElementById("loaderText").textContent = "Loading Python... ";
-
-                const response = await fetch("lorenz.py");
-                const initCode = await response.text();
-
-                let worker = new Worker("../pyodide_background_worker.js");
-                let animationId;
-
-                // load python packages
-                await new Promise((resolve, reject) => {
-                    worker.onmessage = (e) => {
-                        if (e.data.type === "ready") {
-                            calculateButton.disabled = false;
-                            resolve();
-                        }
-                        else if (e.data.type === "error") reject(e.data.error);
-                    };
-
-                    worker.postMessage({
-                        type: "init",
-                        initCode: initCode,
-                        packages: ["numpy", "scipy"],
-                    });
-                });
-                
-                const form = document.getElementById("dataForm");
-                form.addEventListener("submit", async (e) => {
-                    // disable the submit button
-                    calculateButton.disabled = true;
-                    e.preventDefault(); // ?
-                    // parse the input data
-                    const n = parseFloat(
-                        document.getElementById("nInput").value,
-                    );
-
-                    const T = parseFloat(
-                        document.getElementById("TInput").value,
-                    );
-
-                    return new Promise((resolve, reject) => {
-                        worker.onmessage = function (e) {
-                            // when you receive a message from the pyodide worker:
-                            // enable the submit button
-                            calculateButton.disabled = false;
-                            // if the calculation was successful, plot the results:
-                            if (e.data.type === "result") {
-                                // this is the output data converted to JavaScript from Python
-                                const [x, y, z] = e.data.data;
-                                // not loading anymore: make the loader button invisible
-                                
-                                document.getElementById("loaderSpinner")
-                                    .style.visibility = 'hidden';
-                                document.getElementById("loaderText")
-                                    .textContent = "Integration completed";
-
-                                // this is a compact way to load all the traces
-                                //   x,y,z [t][k] for sample k at time t
-                                /*let traces = Array.from(x[0]).map(
-                                    (xk, k) => ({
-                                        x: [xk],
-                                        y: [y[0][k]],
-                                        z: [z[0][k]],
-                                        mode: "markers",
-                                        marker: { size: 1 },
-                                        type: 'scatter3d',
-                                    }),
-                                );*/
-                                let traces = [{
-                                    x: x[0], y: y[0], z: z[0],
-                                    mode: "markers",
-                                    marker: { size: 3 },
-                                    type: 'scatter3d',
-                                }]
-
-                                let layout = {
-                                    xaxis: {
-                                        range: [-20,20],
-                                    },
-                                    yaxis: {
-                                        range: [-25,25],
-                                    },
-                                    zaxis: {
-                                        range: [0,50],
-                                    },
-                                    height: 500,
-                                    showlegend: false,
-                                    margin: { l: 0, r: 0, b: 0, t: 0 }
-                                }
-                                
-                                // create the plot
-                                Plotly.newPlot(
-                                    "plot",
-                                    traces,
-                                    layout,
-                                    { responsive: true },
-                                );
-                                
-                                // animate the plot, where i is time index
-                                let i = 0;
-                                function update() {
-                                    i = (i+1)%x.length; // time loop
-                                    
-                                    /*let newTraces = Array.from(x[i]).map(
-                                        (xik, k) => ({
-                                            x: [xik],
-                                            y: [y[i][k]],
-                                            z: [z[i][k]],
-                                        }),
-                                    );*/
-                                    Plotly.extendTraces("plot",
-                                        {x: [[x[i]]], y: [[y[i]]], z: [[z[i]]]},
-                                        [0],
-                                        x.length*x[0].length
-                                    );
-
-                                    /*Plotly.relayout("plot", layout)
-                                    Plotly.animate("plot",
-                                        { data: newTraces },
-                                        {
-                                            transition: { duration: 0 },
-                                            frame: {
-                                                duration: 0,
-                                                redraw: false,
-                                            },
-                                        },
-                                    );*/
-
-                                    animationId = requestAnimationFrame(update);
-                                }
-
-                                if (animationId) {
-                                    cancelAnimationFrame(animationId);
-                                }
-                                animationId = requestAnimationFrame(update);
-                                resolve();
-                            } else if (e.data.type === "error") {
-                                
-                                document.getElementById("loaderSpinner")
-                                    .style.visibility = 'hidden';
-                                document
-                                    .getElementById("loaderText")
-                                    .textContent = "Error";
-                                reject(new Error(e.data.error));
-                            }
-                        };
-
-                        // while calculating, make the "loader" button visible with the message "Calculating..."
+            return new Promise((resolve, reject) => {
+                worker.onmessage = function (e) {
+                    // when you receive a message from the pyodide worker:
+                    // enable the submit button
+                    calculateButton.disabled = false;
+                    // if the calculation was successful, plot the results:
+                    if (e.data.type === "result") {
+                        // this is the output data converted to JavaScript from Python
+                        const [x, y, z] = e.data.data;
+                        // not loading anymore: make the loader button invisible
                         
                         document.getElementById("loaderSpinner")
-                            .style.visibility = 'visible';
+                            .style.visibility = 'hidden';
                         document.getElementById("loaderText")
-                            .textContent = "Calculating... ";
-                        // calculation message
-                        worker.postMessage({
-                            type: "calculate",
-                            code: `lorenz.run(${n},${T})`,
-                        });
-                    });
-                });
+                            .textContent = "Integration completed";
 
-                // Initial calculation
-                await form.requestSubmit();
-            } catch (error) {
-                console.error(error);
+                        // this is a compact way to load all the traces
+                        //   x,y,z [t][k] for sample k at time t
+                        /*let traces = Array.from(x[0]).map(
+                            (xk, k) => ({
+                                x: [xk],
+                                y: [y[0][k]],
+                                z: [z[0][k]],
+                                mode: "markers",
+                                marker: { size: 1 },
+                                type: 'scatter3d',
+                            }),
+                        );*/
+
+                        var traces2d = [];
+                        var traces3d = [];
+                        for(let k=0;k<x.length;k++) {
+                            traces2d[k] = {
+                                x: x[k][0], y: z[k][0],
+                                mode: "markers",
+                                marker: { size: 5},
+                                type: 'scatter',
+                                name: null,
+                                opacity: 0.5,
+                            }
+                            traces3d[k] = {
+                                x: x[k], y: y[k], z: z[k],
+                                mode: "markers",
+                                marker: { size: 1},
+                                type: 'scatter3d',
+                                name: null,
+                                opacity: 0.5,
+                            }
+                        }
+
+                        let layout2d = {
+                            title: {text: 'Dynamics projected in 2D'},
+                            xaxis: { title: {text: 'x'}, range: [-20,20]},
+                            yaxis: { title: {text: 'z'}, range: [0,50]},
+                            height: 500,
+                            showlegend: false,
+                            //margin: { l: 0, r: 0, b: 0, t: 0 }
+                        }
+                        let layout3d = {
+                            title: {text: 'All points in 3D'},
+                            xaxis: { title: {text: 'x'}, range: [-20,20]},
+                            yaxis: { title: {text: 'y'}, range: [-20,20]},
+                            zaxis: { title: {text: 'z'}, range: [0,50]},
+                            height: 500,
+                            showlegend: false,
+                            //margin: { l: 0, r: 0, b: 0, t: 0 }
+                        }
+                        
+                        // create the plots
+                        Plotly.newPlot("plot2d", traces2d, layout2d,
+                            { responsive: true },
+                        );
+                        Plotly.newPlot( "plot3d", traces3d, layout3d,
+                            { responsive: true },
+                        );
+                        
+                        // animate the 2d plot, where i is time index
+                        // 3d animation is NOT possible!
+                        let i = 0;
+                        function update() {
+                            i = (i+1)%x[0].length; // time loop
+                            
+                            /*
+                            Plotly.extendTraces("plot2d",
+                                {x: [[x[i]]], y: [[z[i]]]},
+                                [0],
+                                x.length*x[0].length
+                            );
+                            let newTraces = Array.from(x[i]).map(
+                                (xik, k) => ({
+                                    x: [xik],
+                                    y: [z[i][k]],
+                                }),
+                            );
+                            */
+                            //Plotly.relayout("plot2d", layout)
+                            
+                            var newTraces = [];
+                            var traceIndexes = [];
+                            for(let k=0;k<x.length;k++) {
+                                newTraces[k] = {
+                                    x: x[k].slice(0,i+1), //[x[k][i]],
+                                    y: z[k].slice(0,i+1), //[z[k][i]],
+                                };
+                                traceIndexes[k] = k;
+                            }
+                            Plotly.animate("plot2d",
+                                { data: newTraces },
+                                {
+                                    transition: { duration: 0 },
+                                    frame: {
+                                        duration: 0,
+                                        redraw: false,
+                                    },
+                                },
+                            );
+
+                            animationId = requestAnimationFrame(update);
+                        }
+
+                        if (animationId) {
+                            cancelAnimationFrame(animationId);
+                        }
+                        animationId = requestAnimationFrame(update);
+                        resolve();
+                    } else if (e.data.type === "error") {
+                        
+                        document.getElementById("loaderSpinner")
+                            .style.visibility = 'hidden';
+                        document
+                            .getElementById("loaderText")
+                            .textContent = "Error";
+                        reject(new Error(e.data.error));
+                    }
+                };
+
+                // while calculating, make the "loader" button
+                // visible with the message "Calculating..."
+                
                 document.getElementById("loaderSpinner")
-                    .style.visibility = 'hidden';
+                    .style.visibility = 'visible';
                 document.getElementById("loaderText")
-                    .textContent = "Error";
-                calculateButton.disabled = false;
-            }
-        }
+                    .textContent = "Calculating... ";
+                // calculation message
+                worker.postMessage({
+                    type: "calculate",
+                    code: `lorenz.run(${n},${dt},${T})`,
+                });
+            });
+        });
 
-        main();
+        // Initial calculation
+        await form.requestSubmit();
+    } catch (error) {
+        console.error(error);
+        document.getElementById("loaderSpinner")
+            .style.visibility = 'hidden';
+        document.getElementById("loaderText")
+            .textContent = "Error";
+        calculateButton.disabled = false;
+    }
+}
+
+main();
     </script>
 </html>

@@ -41,10 +41,10 @@ class Lorenz:
     
     def get_trajectory_unfolded(self):
         x,y,z = self.ys.reshape(3,self.n,len(self.ts))
-        # return (time,samples) arrays
-        return x.T,y.T,z.T
+        # return (samples,times) arrays
+        return x,y,z
 
-    def integrate(self, T, dt_eval=0.1, rtol=1e-5):
+    def integrate(self, dt_eval, T, rtol=1e-5):
         # yy must have shape 3 x n
         t_eval = self.ts[-1] + np.arange(dt_eval, T+dt_eval/2, dt_eval)
         #ys = np.zeros((3*n, N))
@@ -76,9 +76,9 @@ class Lorenz:
         self.ys = np.concatenate([self.ys,sol.y], axis=-1)
         return
     
-    def run(self, n, T):
+    def run(self, n, dt_eval, T):
         self.set_initial_condition(n)
-        self.integrate(T)
+        self.integrate(dt_eval, T)
         return self.get_trajectory_unfolded()
 
 lorenz = Lorenz()

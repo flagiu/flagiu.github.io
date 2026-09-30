@@ -41,7 +41,7 @@ form {
     display: grid;
     grid-template-columns: max-content max-content;
     grid-gap: 5px;
-    align-items:flex-start;
+    align-items: flex-start;
     background-color: #ecf2fb;
 }
 
