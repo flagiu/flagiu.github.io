@@ -5,17 +5,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="../../../assets/img/favicon.png" />
         <link rel="stylesheet" href="..//style.css" />
-        <script
-            async
-            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"
-        ></script>
+        <!-- or MathJax v4 -->
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
         <script src="https://cdn.plot.ly/plotly-4.0.0.min.js"></script>
         <title>Physics simulations</title>
     </head>
     <body>
         <header>
             <div class="header-container">
-                <h1>Lorenz attractor</h1>
+                <h1>Logistic map</h1>
                 <a href="../../../index.html" class="home-button">
                     <i class="fa-solid fa-house text-xl"></i> </a>
                 <a href="../" class="home-button">
@@ -25,21 +23,40 @@
         <main>
             <section class="prose">
                 <p>
-                    A famous dynamic system in 3 dimentions
-                    having a butterfly-shaped attractor.
+                    A classic example of a 1-parameter and 1-dimensional
+                    discrete dynamical system showing deterministic chaos:
+                </p>
+                <p>
+                    \( x_{t+1} = \lambda x_t (1 - x_t) \)
                 </p>
                 <p>
                     The simulation can be customized by
                     adjusting the parameters below.
                 </p>
                 <p>
-                    A static 3d plot of the whole dynamics
-                    and a 2d projection of the dynamics are shown.
+                    Dynamics, phase space and bifurcation diagrams
+                    are shown in the plots below.
                 </p>
             </section>
             <section class="form-and-plot">
-                <div style="grid-column: 1; grid-row: 1;">
+                <div style="grid-column: 1 / 2; grid-row: 1;">
                     <form id="dataForm" class="form">
+                        <label for="lamInput" class="self-center">
+                            Parameter \(\, \lambda \)</label>
+                        <div>
+                            <input
+                                type="range"
+                                id="lamInput"
+                                name="lambda"
+                                value="1"
+                                min="0"
+                                max="4"
+                                step="0.001"
+                                onchange="this.nextElementSibling.value = this.value"
+                            />
+                            <output id="lamLabel">1</output>
+                        </div>
+                        
                         <label for="nInput" class="self-center">
                             Number of samples</label>
                         <input
@@ -50,6 +67,26 @@
                             min="1"
                             step="1"
                         />
+                        <label for="nInput" class="self-center">
+                            Initial condition \(\,x_0\)</label>
+                        <input
+                            type="number"
+                            id="x0Input"
+                            name="x0"
+                            value="0.6"
+                            min="0"
+                            step="0.01"
+                        />
+                        <label for="diffInput" class="self-center">
+                            Max. inter-samples variability (%)</label>
+                        <input
+                            type="number"
+                            id="diffInput"
+                            name="diff"
+                            value="0.1"
+                            min="0"
+                            step="0.1"
+                        />
 
                         <label for="dtInput" class="self-center">
                             Sampling time</label>
@@ -57,9 +94,9 @@
                             type="number"
                             id="dtInput"
                             name="dt"
-                            value="0.02"
-                            min="0.01"
-                            step="0.01"
+                            value="1"
+                            min="1"
+                            step="1"
                         />
                         
                         <label for="TInput" class="self-center">
@@ -68,7 +105,7 @@
                             type="number"
                             id="TInput"
                             name="T"
-                            value="10"
+                            value="100"
                             min="1"
                             step="1"
                         />
@@ -85,28 +122,41 @@
                         </div>
                     </form>
                 </div>
-                <div id="plot2d" class="plot-container"
+                <div id="plotTime" class="plot-container"
                     style="grid-column: 1; grid-row: 2;"></div>
-                <div id="plot3d" class="plot-container"
+                <div id="plotCobweb" class="plot-container"
+                    style="grid-column: 2; grid-row: 2;"></div>
+                <div id="plotBifurcation" class="plot-container"
                     style="grid-column: 1; grid-row: 3;"></div>
+                <div id="plotLyapunov" class="plot-container"
+                    style="grid-column: 2; grid-row: 3;"></div>
             </section>
         </main>
     </body>
 
     <script type="module">
 async function main() {
+    const form = document.getElementById("dataForm");
     const calculateButton = document.getElementById("calculateButton");
     const resetButton = document.getElementById("resetButton");
-
+    
     resetButton.addEventListener("click", () => {
         // Reset form to default values
-        document.getElementById("nInput").value = "1";
-        document.getElementById("dtInput").value = "0.02";
-        document.getElementById("TInput").value = "10";
+        document.getElementById("lamInput").value = "1";
+        document.getElementById("nInput").value = "5";
+        document.getElementById("x0Input").value = "0.6";
+        document.getElementById("diffInput").value = "0.1";
+        document.getElementById("dtInput").value = "1";
+        document.getElementById("TInput").value = "100";
 
         // Reload the page
         window.location.reload();
     });
+    
+    document.getElementById("lamInput").addEventListener(
+        "change", () => { calculateButton.click(); }
+    );
+    
 
     try {
         // Initialize worker
@@ -137,21 +187,17 @@ async function main() {
             });
         });
         
-        const form = document.getElementById("dataForm");
         form.addEventListener("submit", async (e) => {
             // disable the submit button
             calculateButton.disabled = true;
             e.preventDefault(); // ?
             // parse the input data
-            const n = parseFloat(
-                document.getElementById("nInput").value,
-            );
-            const dt = parseFloat(
-                document.getElementById("dtInput").value,
-            );
-            const T = parseFloat(
-                document.getElementById("TInput").value,
-            );
+            const lam = parseFloat(document.getElementById("lamInput").value,);
+            const n = parseFloat(document.getElementById("nInput").value,);
+            const x0 = parseFloat(document.getElementById("x0Input").value,);
+            const diff = parseFloat(document.getElementById("diffInput").value,);
+            const dt = parseFloat(document.getElementById("dtInput").value,);
+            const T = parseFloat(document.getElementById("TInput").value,);
 
             return new Promise((resolve, reject) => {
                 worker.onmessage = function (e) {
@@ -161,7 +207,7 @@ async function main() {
                     // if the calculation was successful, plot the results:
                     if (e.data.type === "result") {
                         // this is the output data converted to JavaScript from Python
-                        const [x, y, z] = e.data.data;
+                        const [t, x, xdot, orbits, lyexp] = e.data.data;
                         // not loading anymore: make the loader button invisible
                         
                         document.getElementById("loaderSpinner")
@@ -169,65 +215,114 @@ async function main() {
                         document.getElementById("loaderText")
                             .textContent = "Integration completed";
 
-                        // this is a compact way to load all the traces
-                        //   x,y,z [t][k] for sample k at time t
-                        /*let traces = Array.from(x[0]).map(
-                            (xk, k) => ({
-                                x: [xk],
-                                y: [y[0][k]],
-                                z: [z[0][k]],
-                                mode: "markers",
-                                marker: { size: 1 },
-                                type: 'scatter3d',
-                            }),
-                        );*/
-
-                        var traces2d = [];
-                        var traces3d = [];
+                        var tracesTime = [];
                         for(let k=0;k<x.length;k++) {
-                            traces2d[k] = {
-                                x: x[k][0], y: z[k][0],
-                                mode: "markers",
+                            tracesTime[k] = {
+                                x: t[0], y: x[k][0],
+                                mode: "lines+markers",
                                 marker: { size: 5},
                                 type: 'scatter',
                                 name: null,
                                 opacity: 0.5,
                             }
-                            traces3d[k] = {
-                                x: x[k], y: y[k], z: z[k],
-                                mode: "markers",
-                                marker: { size: 1},
-                                type: 'scatter3d',
+                        }
+                        const bisectrixTrace = {
+                            x: [0,1], y: [0,1],
+                            mode: 'line',
+                            line: {color: 'black'},
+                            name: "bisectrix"
+                        };
+                        var tracesCobweb = [bisectrixTrace];
+                        for(let k=0;k<x.length;k++) {
+                            tracesCobweb[1+k] = {
+                                x: [x[k][0], xdot[k][0]],
+                                y: [xdot[k][0], x[k][0]],
+                                mode: "lines+markers",
+                                marker: { size: 3},
+                                type: 'scatter',
                                 name: null,
                                 opacity: 0.5,
                             }
                         }
 
-                        let layout2d = {
-                            title: {text: 'Dynamics projected in 2D'},
-                            xaxis: { title: {text: 'x'}, range: [-20,20]},
-                            yaxis: { title: {text: 'z'}, range: [0,50]},
+                        let tracesBifurcation = [{
+                            x: new Float64Array(orbits.length).fill(lam),
+                            y: orbits,
+                            mode: "markers",
+                            marker: { size: 3, color: '#980002'},
+                            type: 'scatter',
+                            name: null,
+                            opacity: 0.95,
+                        }];
+                        let tracesLyapunov = [{
+                            x: new Float64Array(n).fill(lam),
+                            y: lyexp,
+                            mode: "markers",
+                            marker: { size: 3, color: '#980002'},
+                            type: 'scatter',
+                            name: null,
+                            opacity: 0.95,
+                        }];
+
+                        let layoutTime = {
+                            title: {text: 'Dynamics'},
+                            xaxis: { title: {text: 'time'}, range: [0,x[0].length]},
+                            yaxis: { title: {text: 'x'}, range: [0,1]},
                             height: 500,
                             showlegend: false,
                             //margin: { l: 0, r: 0, b: 0, t: 0 }
-                        }
-                        let layout3d = {
-                            title: {text: 'All points in 3D'},
-                            xaxis: { title: {text: 'x'}, range: [-20,20]},
-                            yaxis: { title: {text: 'y'}, range: [-20,20]},
-                            zaxis: { title: {text: 'z'}, range: [0,50]},
+                        };
+                        let layoutCobweb = {
+                            title: {text: 'Cobweb plot'},
+                            xaxis: { title: {text: '$x_{t}$'}, range: [0,1]},
+                            yaxis: {
+                                title: {text: '$x_{t+1}$'}, range: [0,1],
+                                scaleanchor: "x", scaleratio: 1 // 1:1 ratio
+                            },
                             height: 500,
                             showlegend: false,
                             //margin: { l: 0, r: 0, b: 0, t: 0 }
-                        }
+                        };
+                        let layoutBifurcation = {
+                            title: {text: 'Bifurcation diagram'},
+                            xaxis: { title: {text: '$\\lambda$'}, range: [0,4]},
+                            yaxis: { title: {text: 'Stable orbits $x*$'}, range: [0,1]},
+                            height: 500,
+                            showlegend: false,
+                            //margin: { l: 0, r: 0, b: 0, t: 0 }
+                        };
+                        let layoutLyapunov = {
+                            title: {text: 'Lyapunov exponent for each sample'},
+                            xaxis: { title: {text: '$\\lambda$'}, range: [0,4]},
+                            yaxis: { title: {text: '$\\Lambda$'}, range: [-9,2]},
+                            height: 500,
+                            showlegend: false,
+                            //margin: { l: 0, r: 0, b: 0, t: 0 }
+                        };
                         
                         // create the plots
-                        Plotly.newPlot("plot2d", traces2d, layout2d,
+                        Plotly.newPlot("plotTime", tracesTime, layoutTime,
                             { responsive: true },
                         );
-                        Plotly.newPlot( "plot3d", traces3d, layout3d,
+                        Plotly.newPlot("plotCobweb", tracesCobweb, layoutCobweb,
                             { responsive: true },
                         );
+
+                        try { // next executions
+                            Plotly.addTraces("plotBifurcation",tracesBifurcation[0]);
+                        } catch (error) { // first execution
+                            Plotly.newPlot("plotBifurcation", tracesBifurcation, layoutBifurcation,
+                                { responsive: true },
+                            );
+                        }
+
+                        try { // next executions
+                            Plotly.addTraces("plotLyapunov",tracesLyapunov[0]);
+                        } catch (error) { // first execution
+                            Plotly.newPlot("plotLyapunov", tracesLyapunov, layoutLyapunov,
+                                { responsive: true },
+                            );
+                        }
                         
                         // animate the 2d plot, where i is time index
                         // 3d animation is NOT possible!
@@ -251,15 +346,36 @@ async function main() {
                             //Plotly.relayout("plot2d", layout)
                             
                             var newTraces = [];
-                            var traceIndexes = [];
                             for(let k=0;k<x.length;k++) {
                                 newTraces[k] = {
-                                    x: x[k].slice(0,i+1), //[x[k][i]],
-                                    y: z[k].slice(0,i+1), //[z[k][i]],
+                                    x: t.slice(0,i+1), //[x[k][i]],
+                                    y: x[k].slice(0,i+1), //[z[k][i]],
                                 };
-                                traceIndexes[k] = k;
                             }
-                            Plotly.animate("plot2d",
+                            Plotly.animate("plotTime",
+                                { data: newTraces },
+                                {
+                                    transition: { duration: 0 },
+                                    frame: {
+                                        duration: 0,
+                                        redraw: false,
+                                    },
+                                },
+                            );
+
+                            var newTraces = [bisectrixTrace];
+                            for(let k=0;k<x.length;k++) { // for all replicas
+                                var xCoweb = [x[k][0]];
+                                var yCoweb = [0];
+                                for(let j=0;j<=i;j++){
+                                    xCoweb[1+2*j+0] = x[k][j];
+                                    xCoweb[1+2*j+1] = xdot[k][j];
+                                    yCoweb[1+2*j+0] = xdot[k][j];
+                                    yCoweb[1+2*j+1] = xdot[k][j];
+                                }
+                                newTraces[1+k] = {x: xCoweb, y: yCoweb};
+                            }
+                            Plotly.animate("plotCobweb",
                                 { data: newTraces },
                                 {
                                     transition: { duration: 0 },
@@ -299,7 +415,7 @@ async function main() {
                 // calculation message
                 worker.postMessage({
                     type: "calculate",
-                    code: `system.run(${n},${dt},${T})`,
+                    code: `system.run(${lam},${n},${x0},${diff},${dt},${T})`,
                 });
             });
         });

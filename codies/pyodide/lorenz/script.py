@@ -31,7 +31,7 @@ class Lorenz:
         return
 
     def get_initial_condition(self):
-        return self.y0
+        return self.ys[:,0]
 
     def get_last_state(self):
         return self.ys[:,-1]
@@ -81,7 +81,7 @@ class Lorenz:
         self.integrate(dt_eval, T)
         return self.get_trajectory_unfolded()
 
-lorenz = Lorenz()
+system = Lorenz()
 #lorenz.set_initial_condition()
 #lorenz.integrate()
 
