@@ -228,13 +228,28 @@ async function main() {
                         }
                         const bisectrixTrace = {
                             x: [0,1], y: [0,1],
-                            mode: 'line',
+                            mode: 'line+marker',
                             line: {color: 'black'},
+                            marker: {size: 0},
                             name: "bisectrix"
                         };
-                        var tracesCobweb = [bisectrixTrace];
+                        var xl = [];
+                        var yl = [];
+                        const N=100;
+                        for(let k=0;k<=N;k++){
+                            xl[k] = k/N;
+                            yl[k] = lam*xl[k]*(1-xl[k]);
+                        }
+                        const fTrace = {
+                            x: xl, y: yl,
+                            mode: 'line+marker',
+                            line: {color: 'black'},
+                            marker: {size: 0},
+                            name: "$f(x)$"
+                        };
+                        var tracesCobweb = [bisectrixTrace,fTrace];
                         for(let k=0;k<x.length;k++) {
-                            tracesCobweb[1+k] = {
+                            tracesCobweb[2+k] = {
                                 x: [x[k][0], xdot[k][0]],
                                 y: [xdot[k][0], x[k][0]],
                                 mode: "lines+markers",
@@ -363,7 +378,7 @@ async function main() {
                                 },
                             );
 
-                            var newTraces = [bisectrixTrace];
+                            var newTraces = [bisectrixTrace,fTrace];
                             for(let k=0;k<x.length;k++) { // for all replicas
                                 var xCoweb = [x[k][0]];
                                 var yCoweb = [0];
@@ -373,7 +388,7 @@ async function main() {
                                     yCoweb[1+2*j+0] = xdot[k][j];
                                     yCoweb[1+2*j+1] = xdot[k][j];
                                 }
-                                newTraces[1+k] = {x: xCoweb, y: yCoweb};
+                                newTraces[2+k] = {x: xCoweb, y: yCoweb};
                             }
                             Plotly.animate("plotCobweb",
                                 { data: newTraces },
