@@ -266,46 +266,12 @@ class AztecDiamond:
                 ax.plot(*line, 'k-')
         return
 
+    def run(self):
+        self.grow()
+        return self.dual
+
 ###################################################
 
-seed=int(12345)
-n=1
-if len(sys.argv)>1:
-    n=int(sys.argv[1])
-    if len(sys.argv)>2:
-        seed=int(sys.argv[2])
-else:
-    print(f"Usage: <n> [seed={seed}]")
-    sys.exit(1)
+seed=1234
 np.random.seed(seed)
-print(f"Seed={seed}")
-system = AztecDiamond(debug=True)
-system.grow_upto_n(n)
-
-print("Plotting as colored tiles")
-fig,ax = plt.subplots(figsize=(8,8), dpi=300)
-system.plot_edges_rectangles(ax)
-ax.set(xlim=(-n,n+1), ylim=(-n,n+1))
-ax.axis("off")
-ax.set(facecolor='none', aspect='equal')
-fig.savefig(f"images/aztec_n{n}_seed{seed}.png", bbox_inches='tight', pad_inches=0)
-
-print("Plotting as NOP")
-fig,ax = plt.subplots(figsize=(8,8), dpi=300)
-system.plot_edges_nonOverlappingPath(ax)
-ax.set(xlim=(-n,n+1), ylim=(-n,n+1))
-ax.axis("off")
-ax.set(facecolor='none', aspect='equal')
-fig.savefig(f"images/aztec-NOP_n{n}_seed{seed}.png", bbox_inches='tight', pad_inches=0)
-
-#print("Plotting as lines")
-#fig,ax = plt.subplots(figsize=(8,8), dpi=300)
-##ax.scatter(points.T[0],points.T[1], color='k', marker='.')
-##ax.scatter(dual.T[0],dual.T[1], color='b', marker='s')
-#system.plot_edges_lines(ax, draw_squares=True)
-#ax.set(xlim=(-n,n+1), ylim=(-n,n+1))
-#ax.axis("off")
-#ax.set(facecolor='none', aspect='equal')
-#fig.savefig(f"images/aztec-lines_n{n}_seed{seed}.png", bbox_inches='tight', pad_inches=0)
-
-#plt.show()
+system = AztecDiamond()

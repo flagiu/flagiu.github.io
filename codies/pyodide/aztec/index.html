@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="../../../assets/img/favicon.png" />
+        <link rel="stylesheet" href="..//style.css" />
+        <!-- or MathJax v4 -->
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
+        <script src="https://cdn.plot.ly/plotly-4.0.0.min.js"></script>
+        <title>Physics simulations</title>
+    </head>
+    <body>
+        <header>
+            <div class="header-container">
+                <h1>Logistic map</h1>
+                <a href="../../../index.html" class="home-button">
+                    <i class="fa-solid fa-house text-xl"></i> </a>
+                <a href="../" class="home-button">
+                    <i class="fa-solid fa-atom text-xl"></i> </a>
+            </div>
+        </header>
+        <main>
+            <section class="prose">
+                <p>
+                    A classic example of a 1-parameter and 1-dimensional
+                    discrete dynamical system showing deterministic chaos:
+                </p>
+                <p>
+                    \( x_{t+1} = \lambda x_t (1 - x_t) \)
+                </p>
+                <p>
+                    The simulation can be customized by
+                    adjusting the parameters below.
+                </p>
+                <p>
+                    Dynamics, phase space and bifurcation diagrams
+                    are shown in the plots below.
+                </p>
+            </section>
+            <section class="form-and-plot">
+                <div style="grid-column: 1 / 2; grid-row: 1;">
+                    <form id="dataForm" class="form">
+                        <label for="lamInput" class="self-center">
+                            Parameter \(\, \lambda \)</label>
+                        <div>
+                            <input
+                                type="range"
+                                id="lamInput"
+                                name="lambda"
+                                value="1"
+                                min="0"
+                                max="4"
+                                step="0.001"
+                                onchange="this.nextElementSibling.value = this.value"
+                            />
+                            <output id="lamLabel">1</output>
+                        </div>
+                        
+                        <label for="nInput" class="self-center">
+                            Number of samples</label>
+                        <input
+                            type="number"
+                            id="nInput"
+                            name="n"
+                            value="5"
+                            min="1"
+                            step="1"
+                        />
+                        <label for="nInput" class="self-center">
+                            Initial condition \(\,x_0\)</label>
+                        <input
+                            type="number"
+                            id="x0Input"
+                            name="x0"
+                            value="0.6"
+                            min="0"
+                            step="0.01"
+                        />
+                        <label for="diffInput" class="self-center">
+                            Max. inter-samples variability (%)</label>
+                        <input
+                            type="number"
+                            id="diffInput"
+                            name="diff"
+                            value="0.1"
+                            min="0"
+                            step="0.1"
+                        />
+
+                        <label for="dtInput" class="self-center">
+                            Sampling time</label>
+                        <input
+                            type="number"
+                            id="dtInput"
+                            name="dt"
+                            value="1"
+                            min="1"
+                            step="1"
+                        />
+                        
+                        <label for="TInput" class="self-center">
+                            Simulation time</label>
+                        <input
+                            type="number"
+                            id="TInput"
+                            name="T"
+                            value="100"
+                            min="1"
+                            step="1"
+                        />
+
+                        
+                        <div class="col-span-2 flex justify-start gap-5">
+                            <button type="submit" id="calculateButton">Calculate</button>
+                            <button type="button" id="resetButton">Reset</button>
+                        </div>
+
+                        <div id="loader" class="loader-container flex">
+                            <div id="loaderSpinner" class="loader"></div>
+                            <p id="loaderText"></p>
+                        </div>
+                    </form>
+                </div>
+                <div id="plotTime" class="plot-container"
+                    style="grid-column: 1; grid-row: 2;"></div>
+                <div id="plotCobweb" class="plot-container"
+                    style="grid-column: 2; grid-row: 2;"></div>
+                <div id="plotBifurcation" class="plot-container"
+                    style="grid-column: 1; grid-row: 3;"></div>
+                <div id="plotLyapunov" class="plot-container"
+                    style="grid-column: 2; grid-row: 3;"></div>
+            </section>
+        </main>
+    </body>
+
+    <script type="module">
+async function main() {
+    const form = document.getElementById("dataForm");
+    const calculateButton = document.getElementById("calculateButton");
+    const resetButton = document.getElementById("resetButton");
+    
+    resetButton.addEventListener("click", () => {
+        // Reset form to default values
+        document.getElementById("lamInput").value = "1";
+        document.getElementById("nInput").value = "5";
+        document.getElementById("x0Input").value = "0.6";
+        document.getElementById("diffInput").value = "0.1";
+        document.getElementById("dtInput").value = "1";
+        document.getElementById("TInput").value = "100";
+
+        // Reload the page
+        window.location.reload();
+    });
+    
+    document.getElementById("lamInput").addEventListener(
+        "change", () => { calculateButton.click(); }
+    );
+    
+
+    try {
+        // Initialize worker
+        calculateButton.disabled = true;
+        document.getElementById("loaderSpinner").style.visibility = 'visible';
+        document.getElementById("loaderText").textContent = "Loading Python... ";
+
+        const response = await fetch("script.py");
+        const initCode = await response.text();
+
+        let worker = new Worker("../pyodide_background_worker.js");
+        let animationId;
+
+        // load python packages
+        await new Promise((resolve, reject) => {
+            worker.onmessage = (e) => {
+                if (e.data.type === "ready") {
+                    calculateButton.disabled = false;
+                    resolve();
+                }
+                else if (e.data.type === "error") reject(e.data.error);
+            };
+
+            worker.postMessage({
+                type: "init",
+                initCode: initCode,
+                packages: ["numpy", "scipy"],
+            });
+        });
+        
+        form.addEventListener("submit", async (e) => {
+            // disable the submit button
+            calculateButton.disabled = true;
+            e.preventDefault(); // ?
+            // parse the input data
+            const lam = parseFloat(document.getElementById("lamInput").value,);
+            const n = parseFloat(document.getElementById("nInput").value,);
+            const x0 = parseFloat(document.getElementById("x0Input").value,);
+            const diff = parseFloat(document.getElementById("diffInput").value,);
+            const dt = parseFloat(document.getElementById("dtInput").value,);
+            const T = parseFloat(document.getElementById("TInput").value,);
+
+            return new Promise((resolve, reject) => {
+                worker.onmessage = function (e) {
+                    // when you receive a message from the pyodide worker:
+                    // enable the submit button
+                    calculateButton.disabled = false;
+                    // if the calculation was successful, plot the results:
+                    if (e.data.type === "result") {
+                        // this is the output data converted to JavaScript from Python
+                        const [t, x, xdot, orbits, lyexp] = e.data.data;
+                        // not loading anymore: make the loader button invisible
+                        
+                        document.getElementById("loaderSpinner")
+                            .style.visibility = 'hidden';
+                        document.getElementById("loaderText")
+                            .textContent = "Integration completed";
+
+                        var tracesTime = [];
+                        for(let k=0;k<x.length;k++) {
+                            tracesTime[k] = {
+                                x: t[0], y: x[k][0],
+                                mode: "lines+markers",
+                                marker: { size: 5},
+                                type: 'scatter',
+                                name: null,
+                                opacity: 0.5,
+                            }
+                        }
+                        const bisectrixTrace = {
+                            x: [0,1], y: [0,1],
+                            mode: 'line+marker',
+                            line: {color: 'black'},
+                            marker: {size: 0},
+                            name: "bisectrix"
+                        };
+                        var xl = [];
+                        var yl = [];
+                        const N=100;
+                        for(let k=0;k<=N;k++){
+                            xl[k] = k/N;
+                            yl[k] = lam*xl[k]*(1-xl[k]);
+                        }
+                        const fTrace = {
+                            x: xl, y: yl,
+                            mode: 'line+marker',
+                            line: {color: 'black'},
+                            marker: {size: 0},
+                            name: "$f(x)$"
+                        };
+                        var tracesCobweb = [bisectrixTrace,fTrace];
+                        for(let k=0;k<x.length;k++) {
+                            tracesCobweb[2+k] = {
+                                x: [x[k][0], xdot[k][0]],
+                                y: [xdot[k][0], x[k][0]],
+                                mode: "lines+markers",
+                                marker: { size: 3},
+                                type: 'scatter',
+                                name: null,
+                                opacity: 0.5,
+                            }
+                        }
+
+                        let tracesBifurcation = [{
+                            x: new Float64Array(orbits.length).fill(lam),
+                            y: orbits,
+                            mode: "markers",
+                            marker: { size: 3, color: '#980002'},
+                            type: 'scatter',
+                            name: null,
+                            opacity: 0.95,
+                        }];
+                        let tracesLyapunov = [{
+                            x: new Float64Array(n).fill(lam),
+                            y: lyexp,
+                            mode: "markers",
+                            marker: { size: 3, color: '#980002'},
+                            type: 'scatter',
+                            name: null,
+                            opacity: 0.95,
+                        }];
+
+                        let layoutTime = {
+                            title: {text: 'Dynamics'},
+                            xaxis: { title: {text: 'time'}, range: [0,x[0].length]},
+                            yaxis: { title: {text: 'x'}, range: [0,1]},
+                            height: 500,
+                            showlegend: false,
+                            //margin: { l: 0, r: 0, b: 0, t: 0 }
+                        };
+                        let layoutCobweb = {
+                            title: {text: 'Cobweb plot'},
+                            xaxis: { title: {text: '$x_{t}$'}, range: [0,1]},
+                            yaxis: {
+                                title: {text: '$x_{t+1}$'}, range: [0,1],
+                                scaleanchor: "x", scaleratio: 1 // 1:1 ratio
+                            },
+                            height: 500,
+                            showlegend: false,
+                            //margin: { l: 0, r: 0, b: 0, t: 0 }
+                        };
+                        let layoutBifurcation = {
+                            title: {text: 'Bifurcation diagram'},
+                            xaxis: { title: {text: '$\\lambda$'}, range: [0,4]},
+                            yaxis: { title: {text: 'Stable orbits $x*$'}, range: [0,1]},
+                            height: 500,
+                            showlegend: false,
+                            //margin: { l: 0, r: 0, b: 0, t: 0 }
+                        };
+                        let layoutLyapunov = {
+                            title: {text: 'Lyapunov exponent for each sample'},
+                            xaxis: { title: {text: '$\\lambda$'}, range: [0,4]},
+                            yaxis: { title: {text: '$\\Lambda$'}, range: [-9,2]},
+                            height: 500,
+                            showlegend: false,
+                            //margin: { l: 0, r: 0, b: 0, t: 0 }
+                        };
+                        
+                        // create the plots
+                        Plotly.newPlot("plotTime", tracesTime, layoutTime,
+                            { responsive: true },
+                        );
+                        Plotly.newPlot("plotCobweb", tracesCobweb, layoutCobweb,
+                            { responsive: true },
+                        );
+
+                        try { // next executions
+                            Plotly.addTraces("plotBifurcation",tracesBifurcation[0]);
+                        } catch (error) { // first execution
+                            Plotly.newPlot("plotBifurcation", tracesBifurcation, layoutBifurcation,
+                                { responsive: true },
+                            );
+                        }
+
+                        try { // next executions
+                            Plotly.addTraces("plotLyapunov",tracesLyapunov[0]);
+                        } catch (error) { // first execution
+                            Plotly.newPlot("plotLyapunov", tracesLyapunov, layoutLyapunov,
+                                { responsive: true },
+                            );
+                        }
+                        
+                        // animate the 2d plot, where i is time index
+                        // 3d animation is NOT possible!
+                        let i = 0;
+                        function update() {
+                            i = (i+1)%x[0].length; // time loop
+                            
+                            /*
+                            Plotly.extendTraces("plot2d",
+                                {x: [[x[i]]], y: [[z[i]]]},
+                                [0],
+                                x.length*x[0].length
+                            );
+                            let newTraces = Array.from(x[i]).map(
+                                (xik, k) => ({
+                                    x: [xik],
+                                    y: [z[i][k]],
+                                }),
+                            );
+                            */
+                            //Plotly.relayout("plot2d", layout)
+                            
+                            var newTraces = [];
+                            for(let k=0;k<x.length;k++) {
+                                newTraces[k] = {
+                                    x: t.slice(0,i+1), //[x[k][i]],
+                                    y: x[k].slice(0,i+1), //[z[k][i]],
+                                };
+                            }
+                            Plotly.animate("plotTime",
+                                { data: newTraces },
+                                {
+                                    transition: { duration: 0 },
+                                    frame: {
+                                        duration: 0,
+                                        redraw: false,
+                                    },
+                                },
+                            );
+
+                            var newTraces = [bisectrixTrace,fTrace];
+                            for(let k=0;k<x.length;k++) { // for all replicas
+                                var xCoweb = [x[k][0]];
+                                var yCoweb = [0];
+                                for(let j=0;j<=i;j++){
+                                    xCoweb[1+2*j+0] = x[k][j];
+                                    xCoweb[1+2*j+1] = xdot[k][j];
+                                    yCoweb[1+2*j+0] = xdot[k][j];
+                                    yCoweb[1+2*j+1] = xdot[k][j];
+                                }
+                                newTraces[2+k] = {x: xCoweb, y: yCoweb};
+                            }
+                            Plotly.animate("plotCobweb",
+                                { data: newTraces },
+                                {
+                                    transition: { duration: 0 },
+                                    frame: {
+                                        duration: 0,
+                                        redraw: false,
+                                    },
+                                },
+                            );
+
+                            animationId = requestAnimationFrame(update);
+                        }
+
+                        if (animationId) {
+                            cancelAnimationFrame(animationId);
+                        }
+                        animationId = requestAnimationFrame(update);
+                        resolve();
+                    } else if (e.data.type === "error") {
+                        
+                        document.getElementById("loaderSpinner")
+                            .style.visibility = 'hidden';
+                        document
+                            .getElementById("loaderText")
+                            .textContent = "Error";
+                        reject(new Error(e.data.error));
+                    }
+                };
+
+                // while calculating, make the "loader" button
+                // visible with the message "Calculating..."
+                
+                document.getElementById("loaderSpinner")
+                    .style.visibility = 'visible';
+                document.getElementById("loaderText")
+                    .textContent = "Calculating... ";
+                // calculation message
+                worker.postMessage({
+                    type: "calculate",
+                    code: `system.run(${lam},${n},${x0},${diff},${dt},${T})`,
+                });
+            });
+        });
+
+        // Initial calculation
+        await form.requestSubmit();
+    } catch (error) {
+        console.error(error);
+        document.getElementById("loaderSpinner")
+            .style.visibility = 'hidden';
+        document.getElementById("loaderText")
+            .textContent = "Error";
+        calculateButton.disabled = false;
+    }
+}
+
+main();
+    </script>
+</html>
