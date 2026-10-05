@@ -13,7 +13,7 @@
     <body>
         <header>
             <div class="header-container">
-                <h1>Logistic map</h1>
+                <h1>Aztec Diamond tiling - the Arctic Circle theorem</h1>
                 <a href="../../../index.html" class="home-button">
                     <i class="fa-solid fa-house text-xl"></i> </a>
                 <a href="../" class="home-button">
@@ -23,96 +23,54 @@
         <main>
             <section class="prose">
                 <p>
-                    A classic example of a 1-parameter and 1-dimensional
-                    discrete dynamical system showing deterministic chaos:
+                    Take a \(2n \) x \(2n \) chessboard. Cut out four triangles from the angles,
+                    each with side \(n-1\): you get an Aztec Diamond (AD). The problem is: can you tile
+                    it with \(2\) x \(1\) domino tiles?
                 </p>
                 <p>
-                    \( x_{t+1} = \lambda x_t (1 - x_t) \)
+                    This app generates typical random ADs of increasing size (first figure).
+                    What do you observe for large \(\, n\)?
                 </p>
                 <p>
-                    The simulation can be customized by
-                    adjusting the parameters below.
+                    This phenomenon is known as the Arctic Circle theorem, and is well explained
+                    in <a href="https://www.youtube.com/watch?v=Yy7Q8IWNfHM">this video of Mathologer</a>.
                 </p>
                 <p>
-                    Dynamics, phase space and bifurcation diagrams
-                    are shown in the plots below.
+                    Each AD tiling maps to a Non-Overlapping Paths problem (second figure): draw random paths connecting
+                    the two bottom sides of an AD, that do not overlap with each other.
                 </p>
             </section>
             <section class="form-and-plot">
                 <div style="grid-column: 1 / 2; grid-row: 1;">
                     <form id="dataForm" class="form">
                         <label for="lamInput" class="self-center">
-                            Parameter \(\, \lambda \)</label>
+                            Random seed</label>
                         <div>
                             <input
-                                type="range"
-                                id="lamInput"
-                                name="lambda"
+                                type="number"
+                                id="seedInput"
+                                name="seed"
                                 value="1"
-                                min="0"
-                                max="4"
-                                step="0.001"
-                                onchange="this.nextElementSibling.value = this.value"
+                                min="1"
+                                step="1"
                             />
-                            <output id="lamLabel">1</output>
+                        </div>
+
+                        <label for="lamInput" class="self-center">
+                            Target \(\, n\)</label>
+                        <div>
+                            <input
+                                type="number"
+                                id="nInput"
+                                name="n"
+                                value="1"
+                                min="1"
+                                step="1"
+                            />
                         </div>
                         
-                        <label for="nInput" class="self-center">
-                            Number of samples</label>
-                        <input
-                            type="number"
-                            id="nInput"
-                            name="n"
-                            value="5"
-                            min="1"
-                            step="1"
-                        />
-                        <label for="nInput" class="self-center">
-                            Initial condition \(\,x_0\)</label>
-                        <input
-                            type="number"
-                            id="x0Input"
-                            name="x0"
-                            value="0.6"
-                            min="0"
-                            step="0.01"
-                        />
-                        <label for="diffInput" class="self-center">
-                            Max. inter-samples variability (%)</label>
-                        <input
-                            type="number"
-                            id="diffInput"
-                            name="diff"
-                            value="0.1"
-                            min="0"
-                            step="0.1"
-                        />
-
-                        <label for="dtInput" class="self-center">
-                            Sampling time</label>
-                        <input
-                            type="number"
-                            id="dtInput"
-                            name="dt"
-                            value="1"
-                            min="1"
-                            step="1"
-                        />
-                        
-                        <label for="TInput" class="self-center">
-                            Simulation time</label>
-                        <input
-                            type="number"
-                            id="TInput"
-                            name="T"
-                            value="100"
-                            min="1"
-                            step="1"
-                        />
-
-                        
                         <div class="col-span-2 flex justify-start gap-5">
-                            <button type="submit" id="calculateButton">Calculate</button>
+                            <button type="submit" id="calculateButton">Grow up to \(\,n\)</button>
                             <button type="button" id="resetButton">Reset</button>
                         </div>
 
@@ -122,14 +80,10 @@
                         </div>
                     </form>
                 </div>
-                <div id="plotTime" class="plot-container"
-                    style="grid-column: 1; grid-row: 2;"></div>
-                <div id="plotCobweb" class="plot-container"
-                    style="grid-column: 2; grid-row: 2;"></div>
-                <div id="plotBifurcation" class="plot-container"
-                    style="grid-column: 1; grid-row: 3;"></div>
-                <div id="plotLyapunov" class="plot-container"
-                    style="grid-column: 2; grid-row: 3;"></div>
+                <div id="emptyPlot" class="plot-container"
+                    style="grid-column: 2; grid-row: 1;"></div>
+                <div id="plotTiles" class="plot-container"></div>
+                <div id="plotPaths" class="plot-container"></div>
             </section>
         </main>
     </body>
@@ -142,21 +96,11 @@ async function main() {
     
     resetButton.addEventListener("click", () => {
         // Reset form to default values
-        document.getElementById("lamInput").value = "1";
-        document.getElementById("nInput").value = "5";
-        document.getElementById("x0Input").value = "0.6";
-        document.getElementById("diffInput").value = "0.1";
-        document.getElementById("dtInput").value = "1";
-        document.getElementById("TInput").value = "100";
-
+        document.getElementById("seedInput").value = "1";
+        document.getElementById("nInput").value = "1";
         // Reload the page
         window.location.reload();
-    });
-    
-    document.getElementById("lamInput").addEventListener(
-        "change", () => { calculateButton.click(); }
-    );
-    
+    });    
 
     try {
         // Initialize worker
@@ -183,7 +127,7 @@ async function main() {
             worker.postMessage({
                 type: "init",
                 initCode: initCode,
-                packages: ["numpy", "scipy"],
+                packages: ["numpy"],
             });
         });
         
@@ -192,12 +136,8 @@ async function main() {
             calculateButton.disabled = true;
             e.preventDefault(); // ?
             // parse the input data
-            const lam = parseFloat(document.getElementById("lamInput").value,);
-            const n = parseFloat(document.getElementById("nInput").value,);
-            const x0 = parseFloat(document.getElementById("x0Input").value,);
-            const diff = parseFloat(document.getElementById("diffInput").value,);
-            const dt = parseFloat(document.getElementById("dtInput").value,);
-            const T = parseFloat(document.getElementById("TInput").value,);
+            const seed = parseFloat(document.getElementById("seedInput").value,);
+            const nTarget = parseFloat(document.getElementById("nInput").value,);
 
             return new Promise((resolve, reject) => {
                 worker.onmessage = function (e) {
@@ -207,207 +147,189 @@ async function main() {
                     // if the calculation was successful, plot the results:
                     if (e.data.type === "result") {
                         // this is the output data converted to JavaScript from Python
-                        const [t, x, xdot, orbits, lyexp] = e.data.data;
+                        const [n,dual] = e.data.data;
                         // not loading anymore: make the loader button invisible
                         
                         document.getElementById("loaderSpinner")
                             .style.visibility = 'hidden';
                         document.getElementById("loaderText")
-                            .textContent = "Integration completed";
+                            .textContent = "Calculation completed";
 
-                        var tracesTime = [];
-                        for(let k=0;k<x.length;k++) {
-                            tracesTime[k] = {
-                                x: t[0], y: x[k][0],
-                                mode: "lines+markers",
-                                marker: { size: 5},
-                                type: 'scatter',
-                                name: null,
-                                opacity: 0.5,
+                        // idea: plot each square as part of a heatmap
+                        // dual must contain only the ACTIVE dual cells!!!!
+                        var tracesTiles = [];
+                        let cR = 0; //"red"; // right, left, top, bottom colors
+                        let cT = 1; //"blue";
+                        let cL = 2; //"green";
+                        let cB = 3; //"yellow";
+                        var xTile = [];
+                        var yTile= [];
+                        var zTile = [];
+                        var kk=0;
+                        for(let k=0;k<dual.length;k++) {
+                            x = dual[k][0];
+                            y = dual[k][1];
+                            edge = dual[k][2];
+                            if(edge==6){continue;} // no tiles
+                            else if(edge<4) {
+                                if(edge==0){ // right tile
+                                    xTile[kk] = x+1/2;
+                                    yTile[kk] = y+1/2;
+                                    zTile[kk] = cR;
+                                    kk++;
+                                    xTile[kk] = x+1/2;
+                                    yTile[kk] = y-1/2;
+                                    zTile[kk] = cR;
+                                    kk++;
+                                } else if(edge==1){ // top tile
+                                    xTile[kk] = x-1/2;
+                                    yTile[kk] = y+1/2;
+                                    zTile[kk] = cT;
+                                    kk++;
+                                    xTile[kk] = x+1/2;
+                                    yTile[kk] = y+1/2;
+                                    zTile[kk] = cT;
+                                    kk++;
+                                } else if(edge==2){ // left tile
+                                    xTile[kk] = x-1/2;
+                                    yTile[kk] = y+1/2;
+                                    zTile[kk] = cL;
+                                    kk++;
+                                    xTile[kk] = x-1/2;
+                                    yTile[kk] = y-1/2;
+                                    zTile[kk] = cL;
+                                    kk++;
+                                } else if(edge==3){ // bottom tile
+                                    xTile[kk] = x-1/2;
+                                    yTile[kk] = y-1/2;
+                                    zTile[kk] = cB;
+                                    kk++;
+                                    xTile[kk] = x+1/2;
+                                    yTile[kk] = y-1/2;
+                                    zTile[kk] = cB;
+                                    kk++;
+                                }
+                            } else if(edge==4){ // right+left tile
+                                xTile[kk] = x+1/2;
+                                yTile[kk] = y+1/2;
+                                zTile[kk] = cR;
+                                kk++;
+                                xTile[kk] = x+1/2;
+                                yTile[kk] = y-1/2;
+                                zTile[kk] = cR;
+                                kk++;
+                                xTile[kk] = x-1/2;
+                                yTile[kk] = y+1/2;
+                                zTile[kk] = cL;
+                                kk++;
+                                xTile[kk] = x-1/2;
+                                yTile[kk] = y-1/2;
+                                zTile[kk] = cL;
+                                kk++;
+                            } else if(edge==5){ // top+bottom tiles
+                                xTile[kk] = x-1/2;
+                                yTile[kk] = y+1/2;
+                                zTile[kk] = cT;
+                                kk++;
+                                xTile[kk] = x+1/2;
+                                yTile[kk] = y+1/2;
+                                zTile[kk] = cT;
+                                kk++;
+                                xTile[kk] = x-1/2;
+                                yTile[kk] = y-1/2;
+                                zTile[kk] = cB;
+                                kk++;
+                                xTile[kk] = x+1/2;
+                                yTile[kk] = y-1/2;
+                                zTile[kk] = cB;
+                                kk++;
                             }
                         }
-                        const bisectrixTrace = {
-                            x: [0,1], y: [0,1],
-                            mode: 'line+marker',
-                            line: {color: 'black'},
-                            marker: {size: 0},
-                            name: "bisectrix"
-                        };
-                        var xl = [];
-                        var yl = [];
-                        const N=100;
-                        for(let k=0;k<=N;k++){
-                            xl[k] = k/N;
-                            yl[k] = lam*xl[k]*(1-xl[k]);
-                        }
-                        const fTrace = {
-                            x: xl, y: yl,
-                            mode: 'line+marker',
-                            line: {color: 'black'},
-                            marker: {size: 0},
-                            name: "$f(x)$"
-                        };
-                        var tracesCobweb = [bisectrixTrace,fTrace];
-                        for(let k=0;k<x.length;k++) {
-                            tracesCobweb[2+k] = {
-                                x: [x[k][0], xdot[k][0]],
-                                y: [xdot[k][0], x[k][0]],
-                                mode: "lines+markers",
-                                marker: { size: 3},
-                                type: 'scatter',
-                                name: null,
-                                opacity: 0.5,
+                        tracesTiles = [{
+                            z: zTile, x: xTile, y: yTile,
+                            type: 'heatmap',
+                            colorscale: 'Rainbow',
+                            zmin: cR, zmax: cB,
+                            colorbar: {dtick: 1}
+                        }];
+                        
+                        var tracesNOP = [];
+                        var kk=0, lx, ly, x,y,edge;
+                        for(let k=0;k<dual.length;k++) {
+                            x = dual[k][0];
+                            y = dual[k][1];
+                            edge = dual[k][2];
+                            if(edge==6){continue;} // no tiles
+                            else if(edge==1){continue;} // top tile (empty)
+                            else if(edge==4){ // right+left tiles
+                                tracesNOP[kk++] = {
+                                    x: [x, x+1],
+                                    y: [y+1/2, y-1/2],
+                                    mode: 'lines',
+                                    line: {color: 'black'},
+                                    name: null,
+                                };
+                                tracesNOP[kk++] = {
+                                    x: [x-1, x],
+                                    y: [y-1/2, y+1/2],
+                                    mode: 'lines',
+                                    line: {color: 'black'},
+                                    name: null,
+                                };
+                            } else {
+                                if(edge==0){ // right tile
+                                    lx = [x, x+1];
+                                    ly = [y+1/2, y-1/2];
+                                } else if(edge==2){ // left tile
+                                    lx = [x-1, x];
+                                    ly = [y-1/2, y+1/2];
+                                } else if(edge==3 || edge==5){ // bottom tile
+                                    lx = [x-1, x+1];
+                                    ly = [y-1/2, y-1/2];
+                                }
+                                tracesNOP[kk++] = {
+                                    x: lx, y: ly,
+                                    mode: 'lines',
+                                    line: {color: 'black'},
+                                    name: null,
+                                };
                             }
                         }
-
-                        let tracesBifurcation = [{
-                            x: new Float64Array(orbits.length).fill(lam),
-                            y: orbits,
-                            mode: "markers",
-                            marker: { size: 3, color: '#980002'},
-                            type: 'scatter',
-                            name: null,
-                            opacity: 0.95,
-                        }];
-                        let tracesLyapunov = [{
-                            x: new Float64Array(n).fill(lam),
-                            y: lyexp,
-                            mode: "markers",
-                            marker: { size: 3, color: '#980002'},
-                            type: 'scatter',
-                            name: null,
-                            opacity: 0.95,
-                        }];
-
-                        let layoutTime = {
-                            title: {text: 'Dynamics'},
-                            xaxis: { title: {text: 'time'}, range: [0,x[0].length]},
-                            yaxis: { title: {text: 'x'}, range: [0,1]},
-                            height: 500,
-                            showlegend: false,
-                            //margin: { l: 0, r: 0, b: 0, t: 0 }
-                        };
-                        let layoutCobweb = {
-                            title: {text: 'Cobweb plot'},
-                            xaxis: { title: {text: '$x_{t}$'}, range: [0,1]},
+                        
+                        let layoutTiles = {
+                            title: {text: `n=${n} AD tiling`},
+                            xaxis: {range: [-n,n+1], showgrid: false, visible: false},
                             yaxis: {
-                                title: {text: '$x_{t+1}$'}, range: [0,1],
+                                range: [-n,n+1], showgrid: false, visible: false,
                                 scaleanchor: "x", scaleratio: 1 // 1:1 ratio
                             },
                             height: 500,
                             showlegend: false,
                             //margin: { l: 0, r: 0, b: 0, t: 0 }
                         };
-                        let layoutBifurcation = {
-                            title: {text: 'Bifurcation diagram'},
-                            xaxis: { title: {text: '$\\lambda$'}, range: [0,4]},
-                            yaxis: { title: {text: 'Stable orbits $x*$'}, range: [0,1]},
-                            height: 500,
-                            showlegend: false,
-                            //margin: { l: 0, r: 0, b: 0, t: 0 }
-                        };
-                        let layoutLyapunov = {
-                            title: {text: 'Lyapunov exponent for each sample'},
-                            xaxis: { title: {text: '$\\lambda$'}, range: [0,4]},
-                            yaxis: { title: {text: '$\\Lambda$'}, range: [-9,2]},
+                        let layoutNOP = {
+                            title: {text: 'Equivalent non-overlapping paths'},
+                            xaxis: {range: [-n,n+1], showgrid: false, visible: false},
+                            yaxis: {
+                                range: [-n,n+1], showgrid: false, visible: false,
+                                scaleanchor: "x", scaleratio: 1 // 1:1 ratio
+                            },
                             height: 500,
                             showlegend: false,
                             //margin: { l: 0, r: 0, b: 0, t: 0 }
                         };
                         
                         // create the plots
-                        Plotly.newPlot("plotTime", tracesTime, layoutTime,
+                        Plotly.newPlot("plotTiles", tracesTiles, layoutTiles,
                             { responsive: true },
                         );
-                        Plotly.newPlot("plotCobweb", tracesCobweb, layoutCobweb,
+                        Plotly.newPlot("plotPaths", tracesNOP, layoutNOP,
                             { responsive: true },
                         );
 
-                        try { // next executions
-                            Plotly.addTraces("plotBifurcation",tracesBifurcation[0]);
-                        } catch (error) { // first execution
-                            Plotly.newPlot("plotBifurcation", tracesBifurcation, layoutBifurcation,
-                                { responsive: true },
-                            );
-                        }
-
-                        try { // next executions
-                            Plotly.addTraces("plotLyapunov",tracesLyapunov[0]);
-                        } catch (error) { // first execution
-                            Plotly.newPlot("plotLyapunov", tracesLyapunov, layoutLyapunov,
-                                { responsive: true },
-                            );
-                        }
+                        // increase the target n
+                        document.getElementById("nInput").value = nTarget + 1;
                         
-                        // animate the 2d plot, where i is time index
-                        // 3d animation is NOT possible!
-                        let i = 0;
-                        function update() {
-                            i = (i+1)%x[0].length; // time loop
-                            
-                            /*
-                            Plotly.extendTraces("plot2d",
-                                {x: [[x[i]]], y: [[z[i]]]},
-                                [0],
-                                x.length*x[0].length
-                            );
-                            let newTraces = Array.from(x[i]).map(
-                                (xik, k) => ({
-                                    x: [xik],
-                                    y: [z[i][k]],
-                                }),
-                            );
-                            */
-                            //Plotly.relayout("plot2d", layout)
-                            
-                            var newTraces = [];
-                            for(let k=0;k<x.length;k++) {
-                                newTraces[k] = {
-                                    x: t.slice(0,i+1), //[x[k][i]],
-                                    y: x[k].slice(0,i+1), //[z[k][i]],
-                                };
-                            }
-                            Plotly.animate("plotTime",
-                                { data: newTraces },
-                                {
-                                    transition: { duration: 0 },
-                                    frame: {
-                                        duration: 0,
-                                        redraw: false,
-                                    },
-                                },
-                            );
-
-                            var newTraces = [bisectrixTrace,fTrace];
-                            for(let k=0;k<x.length;k++) { // for all replicas
-                                var xCoweb = [x[k][0]];
-                                var yCoweb = [0];
-                                for(let j=0;j<=i;j++){
-                                    xCoweb[1+2*j+0] = x[k][j];
-                                    xCoweb[1+2*j+1] = xdot[k][j];
-                                    yCoweb[1+2*j+0] = xdot[k][j];
-                                    yCoweb[1+2*j+1] = xdot[k][j];
-                                }
-                                newTraces[2+k] = {x: xCoweb, y: yCoweb};
-                            }
-                            Plotly.animate("plotCobweb",
-                                { data: newTraces },
-                                {
-                                    transition: { duration: 0 },
-                                    frame: {
-                                        duration: 0,
-                                        redraw: false,
-                                    },
-                                },
-                            );
-
-                            animationId = requestAnimationFrame(update);
-                        }
-
-                        if (animationId) {
-                            cancelAnimationFrame(animationId);
-                        }
-                        animationId = requestAnimationFrame(update);
                         resolve();
                     } else if (e.data.type === "error") {
                         
@@ -430,7 +352,7 @@ async function main() {
                 // calculation message
                 worker.postMessage({
                     type: "calculate",
-                    code: `system.run(${lam},${n},${x0},${diff},${dt},${T})`,
+                    code: `system.run(${seed},${nTarget})`,
                 });
             });
         });

@@ -1,10 +1,8 @@
 import numpy as np
-import scipy.integrate as intg
-
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.patches import Rectangle
-import sys
+#import scipy.integrate as intg
+#import matplotlib.pyplot as plt
+#from matplotlib.patches import Rectangle
+#import sys
 
 class AztecDiamond:
     # The configuration of an AztecDiamond of size n (linear extension is 2*n)
@@ -25,6 +23,13 @@ class AztecDiamond:
     
     def __init__(self, debug=False):
         self.debug = debug
+        self.firstRun = True # initalized to True by __init__(); set to False by run()
+        #self.initialize()
+        return
+
+    def initialize(self, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
         self.n = 1
         # a 2x2 square grid of points (not necessary)
         #self.points = np.array([[0,0],[1,0],[1,1],[0,1]])
@@ -35,9 +40,8 @@ class AztecDiamond:
         return
     
     def cell_isActive(self, x,y):
-        n = self.n
         #cells with different parity of n are active
-        return (int(np.abs(x-1/2) + np.abs(y-1/2) - n)%2 == 1)
+        return (int(np.abs(x-1/2) + np.abs(y-1/2) - self.n)%2 == 1)
 
     def get_equivalent_points(self, points):
         # symmetry equivalent by rotations of pi/4 * k (k=1,2,3) around (1/2,1/2)
@@ -133,7 +137,7 @@ class AztecDiamond:
         return
 
     def grow(self):
-        print(f"Growing n from {self.n} to {self.n+1} ...",end='')
+        #print(f"Growing n from {self.n} to {self.n+1} ...",end='')
         self.n += 1
         xob = 1/2 if self.n>2 else 0 #at first iteration, include the central dual point (xob=0)
         add_to_dual = []
@@ -266,12 +270,31 @@ class AztecDiamond:
                 ax.plot(*line, 'k-')
         return
 
-    def run(self):
-        self.grow()
-        return self.dual
+    def get_active_dual_cells(self):
+        #count active cells
+        na = 0
+        for i in range(len(self.dual)):
+            x,y,edge = self.dual[i]
+            if self.cell_isActive(x,y):
+                na+=1
+        #prepare and construct the array
+        adc = np.empty((na,3))
+        na = 0
+        for i in range(len(self.dual)):
+            x,y,edge = self.dual[i]
+            if self.cell_isActive(x,y):
+                adc[na] = self.dual[i]
+                na+=1
+        return adc
+
+    def run(self, seed, n):
+        if self.firstRun:
+            self.initialize(seed)
+            self.firstRun=False
+        while self.n < n:
+            self.grow()
+        return self.n, self.get_active_dual_cells()
 
 ###################################################
 
-seed=1234
-np.random.seed(seed)
 system = AztecDiamond()
