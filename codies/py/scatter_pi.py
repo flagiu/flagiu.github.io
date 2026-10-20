@@ -2,12 +2,14 @@
 From 3b1b 's video on computing Pi with colliding blocks
 https://www.youtube.com/watch?v=6dTyOl1fmDo
 """
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as intg
 from matplotlib.patches import Circle
 from matplotlib.animation import FuncAnimation
 import sys
+import copy
 
 class Vec():
     def __init__(self, r):
@@ -18,22 +20,22 @@ class Vec():
         self.r = np.array(r)
 
     def diff(self, other):
-        return Vec(self.r - other.r)
+        return Vec(self.r.copy() - other.r.copy())
     
     def diff_inplace(self, other):
-        self.r = self.r - other.r
+        self.r = self.r - other.r.copy()
 
     def sum(self, other):
-        return Vec(self.r + other.r)
+        return Vec(self.r.copy() + other.r.copy())
     
     def sum_inplace(self, other):
-        self.r = self.r + other.r
+        self.r = self.r + other.r.copy()
 
     def mult(self, factor):
-        return Vec(self.r * factor)
+        return Vec(self.r.copy() * factor)
 
     def mult_inplace(self, factor):
-        self.r = self.r * factor
+        self.r = self.r * factor.copy()
 
     def mean(self):
         return self.r.mean()
@@ -68,11 +70,12 @@ class Vec():
 
 ###
 class Particle():
-    def __init__(self, mass, position, velocity, pbc=None):
+    def __init__(self, mass, position, velocity, pbc=None, color=None):
         self.m = mass
         self.r = Vec(position)
         self.v = Vec(velocity)
         self.pbc = pbc
+        self.color = color
 
     def apply_pbc(self):
         if self.pbc is None:
@@ -97,15 +100,28 @@ class HardSphere(Particle):
         print(f"Diameter: {self.sigma}")
 
 class System():
-    def __init__(self, particles, walls, debug=False):
-        self.ps = particles
+    def __init__(self, particles, obstacles, time=0, debug=False):
+        self.ps = copy.deepcopy(particles)
+        self.obstacles = copy.deepcopy(obstacles)
+        self.time = time
         self.N = len(self.ps)
-        self.walls = walls
+        # debugging variables
+        self.debug = debug
+        # collision variables
+        self.BIG_T = 1e10  # a large default collision time
         self.coll_times = None
         self.coll_partner = None
-        self.BIG_T = 1e10  # a large default collision time
-        self.debug=debug
-        self.time = 0
+        self.coll_i = None
+        self.coll_j = None
+
+    def copy(self, coll_variables=False):
+        other = System(self.ps, self.obstacles, time=self.time, debug=self.debug)
+        if coll_variables:
+            other.coll_times = self.coll_times.copy()
+            other.coll_partner = self.coll_partner.copy()
+            other.coll_i = self.coll_i.copy()
+            other.coll_j = self.coll_j.copy()
+        return other
 
     def dbprint(self, *args, **kwargs):
         if self.debug:
@@ -117,30 +133,74 @@ class System():
         Qtot = (self.ps[0].m*self.ps[0].v.r + self.ps[1].m*self.ps[1].v.r)/2
         Ekin = (self.ps[0].m*self.ps[0].v.r**2 + self.ps[1].m*self.ps[1].v.r**2)/2
         print(f"{self.time:.2f}"+
-              f" {self.walls[0].r.r:.6f} {self.walls[0].v.r:.6f}"+
+              f" {self.obstacles[0].r.r:.6f} {self.obstacles[0].v.r:.6f}"+
               f" {self.ps[0].r.r:.6f} {self.ps[0].v.r:.6f}"+
               f" {self.ps[1].r.r:.6f} {self.ps[1].v.r:.6f}"+
               f" {Qtot:.6f} {Ekin:.6f}")
 
-    def plot1d(self, axReal, axPhaseSpace, radius_plot = 0.05, normalize_v=True, v_plot=0.2):
-        for wall in self.walls:
-            axReal.axvline(wall.r.r, ymin=0, color='k')
+    def plot_phaseSpace_v1_v2(self, ax):
+        lns = ax.get_lines() #[]
+        r = np.sqrt(self.ps[0].m / self.ps[1].m)
+        u = r*self.ps[0].v.r
+        v = self.ps[1].v.r
+        lns.append(
+            ax.plot(u,v, '.', markersize=4, mfc='r', mec='none', alpha=0.9)[0]
+        )
+        return lns
+    
+    def plot1d(self, axReal, axPhaseSpace, radius_plot = 0.05,
+               v_plot = lambda v: 0.2):
+        lns = self.plot_phaseSpace_v1_v2(axPhaseSpace)
+        for obstacle in self.obstacles:
+            col='black' if obstacle.color is None else obstacle.color
+            axReal.axvline(obstacle.r.r, ymin=0, color=col)
         
         for i,p in enumerate(self.ps):
-            col="C%d"%i
+            col="C%d"%i if p.color is None else p.color
             xy = (p.r.r,self.time)
             radius = radius_plot #radius_plot_factor * p.sigma/2
             #patch = Circle(xy, radius)
             #axReal.add_patch(patch)
-            axReal.scatter(*xy, fc=col, ec='none', alpha=0.7)
+            lns.append(
+                axReal.scatter(*xy, fc=col, ec='none', alpha=0.7)
+            )
             if p.v.norm()>1e-6:
-                axReal.annotate("", xy=xy, xytext=(xy[0]+p.v.normalize().r*v_plot, xy[1]),
-                                arrowprops=dict(arrowstyle="<-", color=col))
+                xy_end = (xy[0]+p.v.normalize().r*v_plot(p.v.norm()), xy[1])
+                lns.append(
+                    axReal.annotate("", xy=xy, xytext=xy_end,
+                                    arrowprops=dict(arrowstyle="<-", color=col))
+                )
+        return lns
 
-        r = np.sqrt(self.ps[0].m / self.ps[1].m)
-        u = r*self.ps[0].v.r
-        v = self.ps[1].v.r
-        axPhaseSpace.scatter(u,v, fc='r', ec='none', alpha=0.9, s=1)
+
+    def plot2d(self, axReal, axPhaseSpace, dt_ballistic = 0.0,
+               radius_plot = lambda sigma: 0.05,
+               v_plot = lambda v: 0.2):
+        lns = self.plot_phaseSpace_v1_v2(axPhaseSpace)
+        for obstacle in self.obstacles:
+            col='black' if obstacle.color is None else obstacle.color
+            axReal.axvline(obstacle.r.r, ymin=0, color=col)
+        
+        for i,p in enumerate(self.ps):
+            col="C%d"%i if p.color is None else p.color
+            pos = p.r.sum( p.v.mult(dt_ballistic) ) #project to ballistic evolution
+            xy = (pos.r,0) if pos.d==1 else (pos.r[0],pos.r[1]) #if 1d embedded in 2d, else pure 2d
+            #axReal.add_patch(Circle(xy, radius_plot(p.sigma)))
+            lns.append(
+                axReal.scatter(*xy, fc=col, ec='none', alpha=0.7)
+            )
+            if p.v.norm()>1e-6:
+                v_plot_vec = p.v.normalize().r*v_plot(p.v.norm())
+                xy_end = (xy[0]+v_plot_vec, xy[1]) if p.v.d==1 else (xy[0]+v_plot_vec[0], xy[1]+v_plot_vec[1]) #1d embedded in 2d, or pure 2d
+                lns.append(
+                    axReal.annotate("", xy=xy, xytext=xy_end,
+                                    arrowprops=dict(arrowstyle="<-", color=col))
+                )
+        xy=(1,0.5)
+        lns.append(
+            axReal.annotate(f"t={self.time+dt_ballistic :.5g}", xy=xy, xytext=xy, fontsize="small")
+        )
+        return lns
 
     def pair_collision_time(self, pi, pj):
         tij = self.BIG_T
@@ -174,11 +234,11 @@ class System():
                     if tij < self.coll_times[j]: #update also particle j's
                         self.coll_times[j] = tij
                         self.coll_partner[j] = i
-                #check also against walls:
-                # walls are encoded as extra particles j' = N + j     
-                for j in range(len(self.walls)):
-                    pj = self.walls[j]
-                    self.dbprint(f"collide:   checking (particle {i}, wall {j})")
+                #check also against obstacles:
+                # obstacles are encoded as extra particles j' = N + j     
+                for j in range(len(self.obstacles)):
+                    pj = self.obstacles[j]
+                    self.dbprint(f"collide:   checking (particle {i}, obstacle {j})")
                     tij = self.pair_collision_time(pi, pj)    
                     if tij < self.coll_times[i]:
                         self.coll_times[i] = tij
@@ -200,9 +260,9 @@ class System():
                             if tij < self.coll_times[j]:
                                 self.coll_times[j] = tij
                                 self.coll_partner[j] = i
-                    #check also against walls: encoded as extra particles j' = N + j     
-                    for j in range(len(self.walls)):
-                        pj = self.walls[j]
+                    #check also against obstacles: encoded as extra particles j' = N + j     
+                    for j in range(len(self.obstacles)):
+                        pj = self.obstacles[j]
                         tij = self.pair_collision_time(pi, pj)    
                         if tij < self.coll_times[i]:
                             self.coll_times[i] = tij
@@ -216,7 +276,7 @@ class System():
         tij = self.coll_times[self.coll_i]
         self.coll_j = self.coll_partner[self.coll_i]
         self.dbprint(f"collide: identified next collision: (particle {self.coll_i}, "+
-                     (f"particle {self.coll_j})" if self.coll_j<self.N else f"wall {self.coll_j-self.N})"))
+                     (f"particle {self.coll_j})" if self.coll_j<self.N else f"obstacle {self.coll_j-self.N})"))
         # move all particles, update collision times and global time
         for i in range(self.N):
             self.coll_times[i] -= tij
@@ -228,7 +288,7 @@ class System():
         if self.debug:
             self.print()
         pi = self.ps[self.coll_i]
-        pj = self.ps[self.coll_j] if self.coll_j<self.N else self.walls[self.coll_j-self.N]
+        pj = self.ps[self.coll_j] if self.coll_j<self.N else self.obstacles[self.coll_j-self.N]
         rij = pi.r.diff(pj.r)
         self.dbprint(f"collide:  ri={pi.r.r} rj={pj.r.r} ==> rij={rij.r}")
         vij = pi.v.diff(pj.v)
@@ -249,66 +309,156 @@ class System():
 sigma = 0.0002 #diameter
 x0 = 1
 v0 = -1
-max_collisions = 1e8
-debug = False
 
-if len(sys.argv)!=2:
-    print("Usage: <r: sqrt(mass ratio)>")
-    sys.exit(1)
-r = float(sys.argv[1]) # square root of mass ratio
+parser = argparse.ArgumentParser(
+    prog = sys.argv[0],
+    description = 'Scattering between two particles and a wall at the origin.\n'+
+                  '  for mass ratio multiple of 100, the number of scatterings computes pi!',
+    epilog=''
+)
+parser.add_argument('sqrt_mass_ratio',  type=float, help="Square root of the particles' mass ratio.")
+parser.add_argument('--max_coll',  type=int, required=False, default=1e8,
+                    help="Maximum number of collisions in the simulation. [default: %(default)s]")
+parser.add_argument('--show',  type=bool, required=False, default=False,
+                    help="Show the plot? [default: %(default)s]")
+parser.add_argument('--anim',  type=bool, required=False, default=False,
+                    help="Show the animation? [default: %(default)s]")
+parser.add_argument('--anim_secs',  type=float, required=False, default=5,
+                    help="Real duration of the animation (seconds). [default: %(default)s]")
+parser.add_argument('--debug',  type=bool, required=False, default=False,
+                    help="Show debugging? [default: %(default)s]")
+args = parser.parse_args()
+
+#if len(sys.argv)!=2:
+#    print("Usage: <r: sqrt(mass ratio)>")
+#    sys.exit(1)
+#r = float(sys.argv[1]) # square root of mass ratio
+r = args.sqrt_mass_ratio
 assert r>=1
+assert args.anim_secs>0
 
 #Create the system
 particles = [
     HardSphere(r*r, 2*x0, v0, sigma),
     HardSphere(  1,   x0,  0, sigma)
 ]
-walls = [ #walls in 1d are modelles as particles with infinite mass
+obstacles = [ #obstacles in 1d are modelles as particles with infinite mass
     HardSphere(np.inf, 0, 0, 0)
 ]
 
-system = System(particles, walls, debug=debug)
+system = System(particles, obstacles, debug=args.debug)
+u_radius = np.abs(v0*r)
 
 ###
-plot=False
-if plot:
+if args.show:
     fig,axes = plt.subplots(1,2, figsize=(6,2), dpi=300, tight_layout=True)
     axReal,axPhaseSpace = axes
-    u_radius = np.abs(v0*r)
     axPhaseSpace.add_patch(Circle((0,0), u_radius, fc='none', ec='black'))
 
     system.plot1d(axReal,axPhaseSpace)
     system.print()
-    n_collisions = 0
-    collided = True
-    while collided and n_collisions < max_collisions:
+    n_coll = 0 #count collisions
+    collided = True #start True in order to enter the while loop
+    while collided and n_coll < args.max_coll:
         collided = system.collide()
         if collided:
-            n_collisions += 1
+            n_coll += 1
         system.print()
         system.plot1d(axReal,axPhaseSpace)
 
     if not collided:
-        print(f"Completed after {n_collisions} collisions")
+        print(f"Completed after {n_coll} collisions")
     else:
-        print("Interrupted")
+        print(f"Interrupted after max collisions {args.max_coll}", file=sys.stderr)
 
-    axReal.set(xlabel=r"Position $x$", xlim=(x_wall,4),
+    axReal.set(xlabel=r"Position $x$", xlim=(system.obstacles[0].r.r,4),
             ylabel="Time", ylim=(-1,system.time+1))
     axPhaseSpace.set(xlabel=r"$u$", xlim=(-u_radius*1.2,u_radius*1.2),
                     ylabel=r"$v$", ylim=(-u_radius*1.2,u_radius*1.2), aspect="equal")
     plt.show()
-else:
-    system.print()
-    n_collisions = 0
-    collided = True
-    while collided and n_collisions < max_collisions:
+elif args.anim:
+    fig,axes = plt.subplots(1,2, figsize=(6,2), dpi=300, tight_layout=True)
+    axReal,axPhaseSpace = axes
+
+    t_coll = [system.time] #list of collision times
+    snapshots = [system.copy()]
+    n_coll = 0 #count collisions
+    collided = True #start True in order to enter the while loop
+    while collided and n_coll < args.max_coll:
         collided = system.collide()
         if collided:
-            n_collisions += 1
+            n_coll += 1
+            t_coll.append(system.time)
+            snapshots.append(system.copy())
+    t_coll = np.array(t_coll)
+
+    if not collided:
+        print(f"Completed after {n_coll} collisions")
+    else:
+        print(f"Interrupted after max collisions {args.max_coll}", file=sys.stderr)
+
+    fps = 24 # frames per second of the animation
+    t_real = args.anim_secs  # real duration of the animation (seconds)
+
+    maxFrames = int(fps*t_real)
+    dt_coll = np.diff(t_coll)
+    dt_min = dt_coll.min() #maximum time resolution of the simulation
+    dt = dt_min/10 # desired time resolution of the animation
+    N = 1+int(t_coll[-1]/dt) # number of simulation snapshots at constant dt
+    # adapt N,dt to the constraints: fps,t_real
+    N = min(N, maxFrames)
+    dt = t_coll[-1]/(N-1)
+    
+    def init():
+        global r, v0, snapshots, axReal, axPhaseSpace, snapshots
+        axReal.clear()
+        axPhaseSpace.clear()
+        axPhaseSpace.add_patch(Circle((0,0), u_radius, fc='none', ec='black'))
+        axReal.set(xlabel=r"Position $x$", xlim=(snapshots[0].obstacles[0].r.r,4),
+                    ylabel=r"Position $y$", ylim=(-1,+1))
+        axPhaseSpace.set(xlabel=r"$u$", xlim=(-u_radius*1.2,u_radius*1.2),
+                        ylabel=r"$v$", ylim=(-u_radius*1.2,u_radius*1.2), aspect="equal")
+        lns = snapshots[0].plot2d(axReal,axPhaseSpace, dt_ballistic=0)
+        return lns
+
+    def update(count):
+        global lns, t_coll, dt
+        #current animation time
+        t_anim = t_coll[0] + dt*count
+        #find the saved snapshot at or just before t_anim
+        i1 = np.where(t_anim>=t_coll)[0][-1]
+        #find the ones you missed due to dt>dt_min
+        i0 = 0 if count==0 else np.where(t_anim-dt>=t_coll)[0][-1]
+        for i in range(i0,i1+1):
+            #project ballistic evolution before the next collision
+            dt_mismatch = t_anim - t_coll[i]
+            lns = snapshots[i].plot2d(axReal,axPhaseSpace, dt_ballistic=dt_mismatch)
+            #print(f"update: count = {count:.0f} ; t_anim = {t_anim:.2g};"+
+            #      f" i = {i:d} ; last_sys.time = {snapshots[i].time:.2g}")
+        return lns
+
+
+    ani = FuncAnimation(
+        fig,
+        update,
+        frames=np.arange(0, N),
+        init_func=init,
+        blit=True,
+        interval=1000 / fps,
+        repeat_delay=1000,
+    )
+    plt.show()
+else:
+    system.print()
+    n_coll = 0
+    collided = True
+    while collided and n_coll < args.max_coll:
+        collided = system.collide()
+        if collided:
+            n_coll += 1
         system.print()
 
     if not collided:
-        print(f"Completed after {n_collisions} collisions", file=sys.stderr)
+        print(f"Completed after {n_coll} collisions", file=sys.stderr)
     else:
-        print(f"Interrupted after max collisions {max_collisions}", file=sys.stderr)
+        print(f"Interrupted after max collisions {args.max_coll}", file=sys.stderr)
