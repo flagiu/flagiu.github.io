@@ -1,27 +1,24 @@
 """
 Forward-Flux Sampling (FFS) of the A -> B transition rate for a 1D Brownian
-particle in a double-well potential (left well A at x = -1, right well B at x = +1).
+particle in a double-well potential U(x)=E(x^2-1)^2 (left well A at x = -1, right well x = +1,
+critical point B at x = 0).
 
 Algorithm (Allen, Valeriani, ten Wolde, J. Phys.: Condens. Matter 21, 463102 (2009)),
-order parameter lambda = x:
+
+Order parameter \lambda == spatial configuration == x:
 
   Stage 0 : run one long trajectory in A. Every time it crosses the first interface
             lambda_0 (coming from A) store the configuration. The flux is
-            Phi_{A,0} = N_crossings / (Volume * T_simulated).
-  Stage i : launch M trial runs from randomly chosen stored points on lambda_i.
-            A trial succeeds if it reaches lambda_{i+1} before falling back to A
-            (x <= lambda_A); successes are stored. P(i+1 | i) = successes / M.
-  Rate    : k_AB = Phi_{A,0} * prod_i P(i+1 | i)
+            \dot{Phi}_{0} = N_crossings / (Volume * simulated_time). Here volume is 1.
+  Stage i : launch (M_i = n_trial * n_augment trial) runs from n_trial randomly chosen
+            stored points on lambda_i, augmented with n_augment random initial velocities.
+            A trial succeeds if it reaches the next interface (x >= lambda_{i+1}) before falling back to A
+            (x <= lambda_A); the number of successes N_i are stored. P(i+1 | i) = N_i / M_i.
+  Repeat for i = 0, ..., n-1.
+  Rate    : k_AB = \dot{Phi}_{0} * \prod_i P(i+1 | i)
 
-Because the dynamics are overdamped, the "configuration" is just x.
 Independent repetitions of the whole procedure ("blocks") give the error bar.
 
-----------------------------------------------------------------------------
-HOOKING UP YOUR OWN MODULE
-Edit ONLY make_integrator() below. It must return a function step(x) -> x_new
-that advances the particle by one time step dt. Everything else is generic.
-If no module is found, a built-in Euler-Maruyama integrator for
-U(x) = Eb * (x^2 - 1)^2 is used.
 ----------------------------------------------------------------------------
 """
 
@@ -78,7 +75,7 @@ def run_ffs(step, velocity_sampler, interfaces, lam_A, n_crossings, n_trials, n_
     point_times = []
     points = []            # collect the crossings of lambda_0 coming from A
     in_A = (x <= lam_A)
-    n_steps = 0
+    n_steps = int(0)
     lam_B = interfaces[-1]
     while len(points) < n_crossings and n_steps < max_stage0_steps:
         if n_steps%1000 == 0:
@@ -113,20 +110,21 @@ def run_ffs(step, velocity_sampler, interfaces, lam_A, n_crossings, n_trials, n_
     probs = []
     for i in range(len(interfaces) - 1):
         lam_next = interfaces[i + 1]
-        starts = rng.choice(points, size=n_trials, replace=True)
+        starts = rng.choice(points, size=n_trials) #, replace=True)
         new_points = []
         for i_trial,start in enumerate(starts):
             p_augmented = velocity_sampler(n_augment)
             for i_augment,p in enumerate(p_augmented):
-                nstep,x,_ = start
+                nstep = int(start[0])
+                x = start[1]
                 traj = [[nstep, x, p]]
-                for s in range(max_trial_steps):
+                for s in range(nstep+1, nstep+1+max_trial_steps):
                     x,p = step(x,p)
-                    traj.append([nstep+s,x,p])
+                    traj.append([s,x,p])
                     if x >= lam_next or x <= lam_A:
                         np.savetxt(f"traj_lam{i}_trial{i_trial}_rnd{i_augment}.dat", np.array(traj), fmt="%d %g %g")
                     if x >= lam_next:
-                        new_points.append([nstep,x,p])
+                        new_points.append([s,x,p])
                         break
                     if x <= lam_A:
                         break
@@ -150,73 +148,117 @@ def kramers_rate(U, ddU, kT, gamma, x_min=-1.0, x_max=0.0):
 def print_problem(U, lam_A, lam_B, interfaces, dt, n_trial, n_augment):
     import matplotlib.pyplot as plt
     import sys
-    Acol, Bcol = 'red', 'green'
+    #basecol, Acol, Bcol = 'red', 'green'
+    basecol, Acol, Bcol = '#3B4992', '#EE0000', '#008B45'
     x_start=-1.0
     x_end=0.0
-    dx=0.5
+    dx=0.45
     dU=0.1
-    axvline_args=dict(ymin=0, ymax=1, ls='--', alpha=0.9)
-    fig,axes = plt.subplots(3,1, figsize=(8,8), dpi=300, sharex=True, gridspec_kw=dict(hspace=0.05), layout="tight")
+    weakAlpha, strongAlpha = 0.2, 0.9
+    tminZoom, tmaxZoom = 103.72, 104.72 #122.46, 123.34
+    plt.rcParams["font.size"] = 20
+    plt.rcParams["figure.autolayout"] = True
+    axvline_args=dict(ymin=0, ymax=1, ls='--', lw=1, alpha=strongAlpha)
+    fig,axes = plt.subplots(3,1, figsize=(8,8), dpi=300, sharex=True,
+                            gridspec_kw=dict(hspace=0.05, height_ratios=[1,2,4]))
     ax = axes[0]
     xl = np.linspace(x_start-dx,x_end+dx,400)
     Ul=U(xl)
-    ax.plot(xl,Ul)
+    ax.plot(xl,Ul, color='k')
     Umin,Umax = -0.5, Ul.max()
     n = len(interfaces)
+    txt_args=dict(va="bottom", fontsize="large")
     #
-    ax.fill_between([xl[0],lam_A], Umin, Umax, color=Acol, alpha=0.2)
+    ax.fill_between([xl[0],lam_A], Umin, Umax, color=Acol, alpha=weakAlpha)
     ax.axvline(lam_A, color=Acol, **axvline_args)
-    ax.text(lam_A, Umax+dU, r"$\lambda_\mathrm{A}$", ha="center", va="bottom")
-    ax.scatter(x_start, U(x_start), marker='o', color=Acol, alpha=0.9)
-    ax.text(x_start, U(x_start)+2*dU, "A", ha="center", va="bottom", fontsize="large")
+    ax.text(lam_A, Umax+dU, r"$\lambda_\mathrm{A}$", ha="center", **txt_args)
+    ax.scatter(x_start, U(x_start), marker='o', color=Acol, zorder=999)
+    ax.text(x_start, U(x_start)+2*dU, "A", ha="center", **txt_args)
     #
-    ax.fill_between([lam_B,xl[-1]], Umin, Umax, color=Bcol, alpha=0.2)
+    ax.fill_between([lam_B,xl[-1]], Umin, Umax, color=Bcol, alpha=weakAlpha)
     ax.axvline(lam_B, color=Bcol, **axvline_args)
-    ax.text(lam_B, Umax+dU, r"$\lambda_n \equiv \lambda_\mathrm{B}$", ha="center", va="bottom")
-    ax.scatter(x_end, U(x_end), marker='o', color=Bcol, alpha=0.9)
-    ax.text(x_end, U(x_end)+2*dU, "B", ha="left", va="bottom", fontsize="large")
+    ax.text(lam_B, Umax+dU, r"$\lambda_n \equiv \lambda_\mathrm{B}$", ha="left", **txt_args)
+    ax.scatter(x_end, U(x_end), marker='o', color=Bcol, zorder=999)
+    ax.text(x_end+0.05*dx, U(x_end)-2*dU, "B", ha="left", va="top", fontsize="large")
     #
     for i,lam in enumerate(interfaces[:-1]):
         ax.axvline(lam, color='k', **axvline_args)
         if i<n//2:
-            ax.text(lam, Umax+dU, r"$\lambda_{%d}$"%i, ha="center", va="bottom")
-    ax.set(xlim=(xl[0],xl[-1]), ylim=(Umin, Umax),
-           ylabel=r"Potential energy $\rightarrow$",
-           xticks=[], yticks=[])
-    ax.set_title(r"Order parameter $\lambda$ $\rightarrow$", y=1.1, va="bottom")
+            if i%2==0:
+                ax.text(lam, Umax+dU, r"$\lambda_{%d}$"%i, ha="center", **txt_args)
+        elif i<n//2+1:
+            ax.text(lam, Umax+dU, r"...", ha="center", **txt_args)
+    ax.set(xlim=(xl[0],xl[-1]), ylim=(Umin, Umax), xticks=[], yticks=[])
+    ax.set_ylabel("Free\nenergy", #+r"$\longrightarrow$",
+                  **txt_args)
+    ax.set_title(r"Order parameter $\lambda$", y=1.3, **txt_args)
+    #
     for iax,ax in enumerate(axes[1:]):
         x,p = np.loadtxt("traj0.dat", unpack=True)
-        ax.plot(x, np.arange(len(x))*dt, lw=1)
+        ax.plot(x, np.arange(len(x))*dt, color=basecol, lw=1, alpha=strongAlpha)
         s,x,p = np.loadtxt("points0.dat", unpack=True)
-        scatter_args=dict(marker='o', fc='none', ec='k')
+        scatter_args=dict(s=16, marker='o', fc='gray', ec='k')
         ax.scatter(x, s*dt, **scatter_args)
         for i,lam in enumerate(interfaces[:-1]):
             ax.axvline(lam, color='k', **axvline_args)
             for i_trial in range(n_trial):
                 for i_augment in range(n_augment):
                     s,x,p = np.loadtxt(f"traj_lam{i}_trial{i_trial}_rnd{i_augment}.dat", unpack=True)
-                    if (x>=interfaces[i+1]).any(): # forward
-                        args=dict(color = Bcol, ls='-')
+                    if (x>=interfaces[i+1]).any(): # forward (success)
+                        args=dict(color = Bcol, ls='-', lw=0.5, alpha=strongAlpha)
                         ax.scatter(x[-1], s[-1]*dt, **scatter_args)
-                    else: # backward
-                        args=dict(color = Acol, ls=':')
-                    ax.plot(x, s*dt, lw=1, **args)
+                    else: # backward (failed)
+                        args=dict(color = Acol, ls='-', lw=0.5, alpha=weakAlpha, zorder=-1)
+                    ax.plot(x, s*dt, **args)
         if iax==0:
             tmin, tmax = ax.get_ylim()
-            ylabel=r"Time $\rightarrow$"
+            ylabel="Time" #+r"$\longleftarrow$"
+            x0,x1 = xl[0]+dx*0.1,xl[-1]-dx*0.5
+            #ax.fill_between([x0,x1],
+                            #tminZoom, tmaxZoom, color='k',
+                            #alpha=strongAlpha, zorder=10)
+            ax.axhline((tminZoom+tmaxZoom)/2, color='k', ls=':',
+                       xmin=0.06, xmax=(x1-xl[0])/(xl[-1]-xl[0]), alpha=strongAlpha)
+            #ax.annotate("", xy=(x0,tmin), xytext=(x0,tminZoom),
+                        #arrowprops=dict(arrowstyle=f'->', lw=2.0, color='k'))
+            ax.annotate("zoom", xy=(x1,tmin-0.08*(tmax-tmin)), xytext=(x1,tminZoom),
+                        ha="center", va="bottom", annotation_clip=False,
+                        arrowprops=dict(arrowstyle=f'->', lw=2.0, color='k'))
+            #ax.plot([xl[0], xl[0]+dx*0.1], [tmin, tminZoom],
+                    #color='gray', alpha=weakAlpha, zorder=999)
+            #ax.plot([xl[-1]-dx*0.1, xl[-1]], [tminZoom, tmin],
+                    #color='gray', alpha=weakAlpha, zorder=999)
         else:
-            tmin, tmax = 186.7, 187.5
-            ylabel=r"Zoomed time $\rightarrow$"
-        ax.fill_between([xl[0],lam_A], tmin, tmax, color=Acol, alpha=0.2)
+            tmin, tmax = tminZoom, tmaxZoom
+            ylabel="Time (zoom)" #+r"$\longleftarrow$"
+        ax.fill_between([xl[0],lam_A], tmin, tmax, color=Acol, alpha=weakAlpha)
         ax.axvline(lam_A, color=Acol, **axvline_args)
-        ax.fill_between([lam_B,xl[-1]], tmin, tmax, color=Bcol, alpha=0.2)
+        ax.fill_between([lam_B,xl[-1]], tmin, tmax, color=Bcol, alpha=weakAlpha)
         ax.axvline(lam_B, color=Bcol, **axvline_args)
-        ax.set(ylabel=ylabel, ylim=(tmin,tmax), yticks=[])
-    fig.tight_layout()
-    fig.savefig("ffs_rate_problem.png")
-    fig.savefig("ffs_rate_problem.pdf")
-    fig.savefig("ffs_rate_problem.svg")
-    print("Saved ffs_rate_problem.png , pdf, svg")
+        ax.set_ylabel(ylabel, **txt_args)
+        ax.set(yticks=[], ylim=(tmin, tmax)) # reverse the axis
+        
+    dy = (tmax-tmin)
+    x,y = (lam_A+interfaces[0])/2, tmin+0.21*dy
+    axes[2].annotate(r'$\dot{\Phi}_0$',
+                     xy=(x,y), xytext=(x,y+0.1*dy), va='bottom', ha="center",
+                     fontsize="large", annotation_clip=False,
+                     arrowprops=dict(arrowstyle='-[, widthB=0.9', lw=2.0, color='k'),
+                     bbox=dict(boxstyle='square', fc='white', color='k'))
+    i=n//2
+    x,y = (interfaces[i]+interfaces[i+1])/2, tmin+0.25*dy
+    factor = (interfaces[i+1] - interfaces[i])/(interfaces[0] - lam_A)
+    axes[2].annotate(r'$P(\lambda_{i+1}|\lambda_{i})$',
+                     xy=(x,y), xytext=(x,y-0.1*dy), va='top', ha='center',
+                     fontsize="large", annotation_clip=False,
+                     arrowprops=dict(arrowstyle=f'-[, widthB={0.9*factor}', lw=2.0, color='k'),
+                     bbox=dict(boxstyle='square', fc='white', color='k'))
+    axes[2].set_xlabel(r"Nucleation rate: $\dot{\Phi}_0 \prod_i \, P(\lambda_{i+1}|\lambda_{i})$",
+                       fontsize="large")
+    figname="ffs_rate_problem"
+    for fmt in ["png","pdf","svg"]:
+        fig.savefig(f"{figname}.{fmt}")
+        print(f"Saved: {figname}.{fmt}")
     #plt.show()
     sys.exit()
 
